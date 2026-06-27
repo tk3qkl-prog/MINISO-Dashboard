@@ -1369,9 +1369,9 @@ function initialiseFilters() {
     if (url.trend && ['revenue','atv','upt'].includes(url.trend)) TREND_METRIC = url.trend;
     if (url.labels === '1') SHOW_DATA_LABELS = true;
     if (url.sort) RANK_METRIC = url.sort;
-    if (url.cmp) COMPARE_STORES = url.cmp;
     const allStores = new Set(RAW.map(r => r.Store));
-    if (url.store) { const want = url.store.split('|').filter(s => allStores.has(s)); if (want.length) SELECTED_STORES = want; }
+    if (url.cmp) { const wantC = url.cmp.filter(s => allStores.has(s)); if (wantC.length) COMPARE_STORES = wantC; }
+    if (url.store) { const want = url.store.split('|').filter(s => allStores.has(s)); if (want.length) SELECTED_STORES = [want[0]]; }
     const allTypes = new Set(RAW.map(r => r.SameStoreType).filter(Boolean));
     if (url.type) { const wantT = url.type.split('|').filter(t => allTypes.has(t)); if (wantT.length) SELECTED_TYPES = wantT; }
     if (url.preset === 'custom' && url.from && url.to) { DATE_FROM = parseInputDate(url.from); DATE_TO = parseInputDate(url.to); CURRENT_PRESET = 'custom'; } 
@@ -1496,9 +1496,9 @@ function buildComboList() {
     el.innerHTML = `<span>${escapeHtml(it.label)}</span>${it.meta ? `<span class="opt-meta">${escapeHtml(it.meta)}</span>` : ''}`;
     el.addEventListener('click', (e) => {
       e.stopPropagation();
-      if (it.value === 'ALL') { SELECTED_STORES = []; }
-      else { const i = SELECTED_STORES.indexOf(it.value); if (i >= 0) SELECTED_STORES.splice(i, 1); else SELECTED_STORES.push(it.value); }
-      buildComboList(); syncFilterUI(); render(); writeUrlState();
+      // Single-select: pick one store or All; selection closes the panel
+      SELECTED_STORES = it.value === 'ALL' ? [] : [it.value];
+      closeCombo(); syncFilterUI(); render(); writeUrlState();
     });
     ul.appendChild(el);
   });
