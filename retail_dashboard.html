@@ -1,0 +1,2307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Retail Performance Dashboard / 零售业绩看板</title>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+<style>
+  :root {
+    /* ── Surface ── */
+    --bg:           #f5f5f7;   /* parchment — page canvas */
+    --bg-raised:    #ffffff;   /* pure white */
+    --surface:      #ffffff;   /* card surface */
+    --surface-2:    #f5f5f7;   /* inner / parchment */
+    --surface-3:    #ebebed;   /* hover tint */
+    --surface-pearl:#fafafc;   /* secondary button fill */
+    --tile-dark-1:  #272729;   /* dark tile primary */
+    --tile-dark-2:  #2a2a2c;   /* dark tile micro-step lighter */
+    --tile-dark-3:  #252527;   /* dark tile micro-step darker */
+    --surface-black:#000000;   /* global nav, true black only */
+
+    /* ── Hairlines ── */
+    --hairline:     #e0e0e0;   /* card / utility border */
+    --hairline-2:   #d2d2d7;   /* slightly heavier */
+    --divider-soft: rgba(0,0,0,0.04);
+
+    /* ── Text ── */
+    --ink:          #1d1d1f;   /* near-black ink, all text on light */
+    --ink-2:        #333333;   /* secondary on light (muted 80) */
+    --muted:        #7a7a7a;   /* tertiary (muted 48) */
+    --muted-2:      #a1a1a6;   /* finest legal */
+    --on-dark:      #ffffff;   /* text on dark tile */
+    --on-dark-muted:#cccccc;   /* secondary on dark */
+
+    /* ── Brand action (the only accent) ── */
+    --primary:      #0066cc;   /* Action Blue */
+    --primary-focus:#0071e3;   /* focus ring */
+    --primary-on-dark:#2997ff; /* in-copy link on dark surface */
+
+    /* ── Semantic status ── */
+    --pos-bg:       rgba(0,102,204,0.08);
+    --pos-text:     #0066cc;   /* positive uses Action Blue, not green */
+    --neg-bg:       rgba(232,68,68,0.10);
+    --neg-text:     #e84444;
+    --neut-bg:      #f5f5f7;
+    --neut-text:    #7a7a7a;
+
+    /* ── Product shadow (one and only) ── */
+    --shadow-product: 3px 5px 30px 0 rgba(0,0,0,0.22);
+  }
+
+  html, body {
+    background: var(--bg);
+    color: var(--ink);
+    font-family: 'SF Pro Text', 'SF Pro Display', system-ui, -apple-system,
+                 BlinkMacSystemFont, 'Inter', 'PingFang SC', 'Microsoft YaHei',
+                 'Helvetica Neue', Arial, sans-serif;
+    font-size: 14px;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    margin: 0;
+  }
+
+  .display {
+    font-family: 'SF Pro Display', system-ui, -apple-system, 'Inter', sans-serif;
+    font-weight: 600;
+    letter-spacing: -0.022em;
+  }
+  .num { font-variant-numeric: tabular-nums; font-feature-settings:'tnum'; letter-spacing:-0.01em; }
+  .eyebrow {
+    font-size: 11px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 600;
+  }
+  .hair { border-color: var(--hairline); }
+
+  /* ===== Dashboard frame ===== */
+  .dashboard-frame {
+    max-width: 1680px;
+    margin: 0 auto;
+    padding: 20px 24px 40px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  /* ===== Card surface — Apple flat utility card ===== */
+  .card {
+    background: var(--surface);
+    border-radius: 18px;
+    border: 1px solid var(--hairline);
+    transition: border-color .2s ease;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .card:hover { border-color: var(--hairline-2); }
+  /* Allow filter dropdowns to escape */
+  #filterContainer { overflow: visible !important; }
+
+  /* ===== Row 1: Header ===== */
+  .row-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 4px 4px 0 4px; min-height: 48px; flex-wrap: wrap; gap: 12px;
+  }
+  .row-header h1 {
+    font-family: 'SF Pro Display', 'Inter', system-ui, sans-serif;
+    font-weight: 600;
+    font-size: 40px;
+    letter-spacing: -0.026em;
+    line-height: 1.05;
+    margin: 0;
+    color: var(--ink);
+  }
+  .row-header h1 .subtitle {
+    font-weight: 400;
+    color: var(--muted);
+    font-size: 21px;
+    letter-spacing: -0.012em;
+    margin-left: 10px;
+  }
+  .hero-summary {
+    margin-top: 10px;
+    font-family: 'SF Pro Display', 'Inter', system-ui, sans-serif;
+    font-weight: 300;
+    font-size: 21px;
+    line-height: 1.35;
+    letter-spacing: -0.012em;
+    color: var(--ink-2);
+    font-variant-numeric: tabular-nums;
+  }
+  .hero-summary .muted { color: var(--muted); }
+  .hero-summary .accent { color: var(--ink); font-weight: 400; }
+  .hero-summary .sep { color: var(--hairline-2); margin: 0 8px; }
+  .header-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  /* Pill primary — the signature Apple Action Blue capsule */
+  .btn-primary {
+    font-size: 13px; font-weight: 600;
+    padding: 9px 18px; border-radius: 9999px;
+    background: var(--primary); color: var(--on-dark);
+    cursor: pointer; transition: transform .12s, background .15s;
+    display: inline-flex; align-items: center; gap: 6px;
+    border: none;
+  }
+  .btn-primary:hover { background: var(--primary-focus); }
+  .btn-primary:active { transform: scale(0.96); }
+  .btn-primary:focus-visible { outline: 2px solid var(--primary-focus); outline-offset: 2px; }
+  /* Ghost secondary — used for Upload */
+  .btn-ghost {
+    font-size: 13px; font-weight: 400;
+    padding: 9px 16px; border-radius: 9999px;
+    background: var(--surface-pearl); color: var(--ink);
+    border: 1px solid var(--hairline);
+    cursor: pointer; transition: background .15s, border-color .15s, transform .12s;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .btn-ghost:hover { background: var(--surface-2); border-color: var(--hairline-2); }
+  .btn-ghost:active { transform: scale(0.96); }
+  /* Link — text-only Action Blue */
+  .btn-link {
+    font-size: 13px; font-weight: 400; color: var(--primary);
+    cursor: pointer; padding: 8px 4px; background: none; border: none;
+  }
+  .btn-link:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+  /* ===== Row 2: Filter bar (Pop-out / Accordion structure) ===== */
+  .row-filter {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: flex-start;
+    padding: 16px;
+  }
+  .filter-col-store { flex: 1 1 260px; max-width: 340px; z-index: 10; }
+  .filter-col-type { flex: 0 1 230px; min-width: 180px; z-index: 9; }
+  .filter-col-period { flex: 2 1 420px; }
+
+  /* ===== Searchable combobox ===== */
+  .combo { position: relative; width: 100%; }
+  .combo-trigger {
+    width: 100%; display: flex; align-items: center; justify-content: space-between;
+    background: var(--surface-pearl); border-radius: 9999px; padding: 9px 16px; text-align: left;
+    font-size: 13px; font-weight: 400; color: var(--ink);
+    border: 1px solid var(--hairline);
+    cursor: pointer; transition: border-color .15s, background .15s;
+  }
+  .combo-trigger:hover { border-color: var(--hairline-2); background: var(--surface); }
+  .combo.open .combo-trigger { border-color: var(--primary); background: var(--surface); }
+  .combo-arrow { color: var(--muted); transition: transform .2s; flex-shrink: 0; }
+  .combo.open .combo-arrow { transform: rotate(180deg); color: var(--primary); }
+  .combo-panel {
+    position: absolute; left: 0; right: 0; top: calc(100% + 6px);
+    background: var(--surface); border-radius: 14px;
+    border: 1px solid var(--hairline);
+    box-shadow: 0 12px 32px rgba(0,0,0,0.08);
+    z-index: 50; overflow: hidden; animation: comboIn .15s ease;
+  }
+  @keyframes comboIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+  .combo-search { width: 100%; border: none; padding: 12px 16px; font-size: 13px; border-bottom: 1px solid var(--hairline); background: var(--surface); color: var(--ink); letter-spacing: -0.01em; }
+  .combo-search::placeholder { color: var(--muted); }
+  .combo-search:focus { outline: none; }
+  .combo-list { max-height: 280px; overflow-y: auto; padding: 6px; }
+  .combo-option { padding: 8px 12px 8px 8px; font-size: 13px; border-radius: 8px; cursor: pointer; display: flex; justify-content: flex-start; align-items: center; gap: 8px; color: var(--ink); letter-spacing: -0.01em; }
+  .combo-option::before { content: ''; width: 14px; flex-shrink: 0; font-size: 12px; font-weight: 600; color: var(--primary); text-align: center; }
+  .combo-option:hover { background: var(--surface-2); }
+  .combo-option.selected { background: var(--pos-bg); color: var(--primary); font-weight: 600; }
+  .combo-option.selected::before { content: '✓'; }
+  .combo-option .opt-meta { color: var(--muted); font-size: 11.5px; font-weight: 400; margin-left: auto; }
+  .combo-empty { padding: 16px; text-align: center; color: var(--muted); font-size: 12.5px; }
+
+  /* ===== Segmented controls — Apple iOS style ===== */
+  .seg { background: var(--surface-2); border-radius: 9px; padding: 3px; display: inline-flex; flex-wrap: wrap; gap: 2px; border: 1px solid var(--hairline); }
+  .seg button { padding: 6px 12px; border-radius: 7px; font-size: 12px; font-weight: 400; color: var(--muted); transition: background .15s, color .15s; letter-spacing: -0.01em; }
+  .seg button:hover { color: var(--ink); }
+  .seg button.active { background: var(--surface); color: var(--ink); font-weight: 600; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+
+  /* ===== Pills (YoY deltas) ===== */
+  .pill { display: inline-flex; align-items: center; gap: 3px; padding: 3px 9px; border-radius: 9999px; font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; letter-spacing: -0.01em; }
+  .pill.pos   { background: var(--pos-bg);   color: var(--pos-text); }
+  .pill.neg   { background: var(--neg-bg);   color: var(--neg-text); }
+  .pill.neut  { background: var(--neut-bg);  color: var(--neut-text); font-weight: 400; }
+
+  .info-i { display: inline-flex; align-items: center; justify-content: center; width: 13px; height: 13px; border-radius: 50%; background: var(--surface-2); color: var(--muted); font-size: 9px; font-weight: 600; cursor: help; font-family: 'SF Pro Display', 'Inter', system-ui, sans-serif; }
+
+  /* ===== Cache status pill — Apple capsule ===== */
+  .cache-pill {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 6px 6px 6px 12px;
+    background: var(--surface-2);
+    border: 1px solid var(--hairline);
+    color: var(--ink);
+    border-radius: 9999px;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    letter-spacing: -0.01em;
+  }
+  .cache-pill .check { color: var(--primary); flex-shrink: 0; }
+  .cache-pill strong { font-weight: 600; color: var(--ink); }
+  .cache-pill span { color: var(--muted); }
+  .cache-pill span strong { color: var(--ink); }
+  .cache-pill button {
+    background: transparent; border: none;
+    color: var(--muted); opacity: 1;
+    cursor: pointer; padding: 4px;
+    border-radius: 50%;
+    display: inline-flex; align-items: center;
+    transition: background .15s, color .15s;
+  }
+  .cache-pill button:hover { background: var(--surface-3); color: var(--ink); }
+  .cache-warning {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 10px;
+    background: var(--neg-bg);
+    color: var(--neg-text);
+    border-radius: 9999px;
+    font-size: 11px;
+    font-weight: 400;
+  }
+  /* ===== Store Profile row ===== */
+  .row-profile {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    align-items: stretch;  /* grid stretches all cards to tallest in row */
+  }
+  @media (min-width: 720px)  { .row-profile { grid-template-columns: repeat(3, 1fr); } }
+  @media (min-width: 1440px) { .row-profile { grid-template-columns: repeat(6, 1fr); } }
+
+  /* Profile cards inherit .card visually; we only add inner-layout rules here */
+  .profile-card {
+    padding: 18px 20px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .profile-value {
+    font-family: 'SF Pro Display', 'Inter', system-ui, sans-serif;
+    font-size: 26px;
+    font-weight: 600;
+    color: var(--ink);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+    letter-spacing: -0.024em;
+    display: flex;
+    align-items: baseline;
+    gap: 6px;
+    flex-wrap: wrap;
+    min-height: 30px;
+  }
+  .profile-value.is-text {
+    font-size: 19px;
+    font-weight: 600;
+    line-height: 1.25;
+    letter-spacing: -0.014em;
+  }
+  .profile-value.is-badges {
+    font-size: 0;
+    gap: 5px;
+    align-items: center;
+  }
+  .profile-unit {
+    font-size: 14px;
+    color: var(--muted);
+    font-weight: 400;
+    letter-spacing: -0.01em;
+  }
+  .profile-meta {
+    font-size: 12px;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.4;
+    margin-top: auto;
+    letter-spacing: -0.01em;
+  }
+  .profile-meta strong { color: var(--ink); font-weight: 600; }
+  /* badges — single neutral style for all type/format chips */
+  .profile-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 9px;
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: 9999px;
+    background: var(--surface-2);
+    color: var(--ink-2);
+    border: 1px solid var(--hairline);
+    white-space: nowrap;
+    line-height: 1.5;
+    letter-spacing: -0.01em;
+  }
+
+  /* ===== Row mid: Sales card occupies full width ===== */
+  .row-mid { display: block; }
+  .row-mid > .card { min-height: 540px; }
+  /* ===== Row banner: Weekday distribution + weekend lift ===== */
+  .row-banner { display: block; }
+  .card-weekday-banner { min-height: auto; }
+  .banner-body {
+    display: grid;
+    grid-template-columns: 1.55fr 1px 1fr;
+    gap: 0;
+    padding: 18px 16px;
+    align-items: stretch;
+  }
+  .banner-bars { padding-right: 36px; display: flex; flex-direction: column; gap: 18px; }
+  .banner-bars-head { display: flex; flex-direction: column; gap: 4px; }
+  .banner-section-eyebrow {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--ink);
+    letter-spacing: -0.014em;
+    line-height: 1.3;
+  }
+  .banner-section-meta {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: -0.01em;
+  }
+  .banner-divider { background: var(--hairline); width: 1px; align-self: stretch; }
+  .banner-lift {
+    padding-left: 36px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    gap: 18px;
+  }
+  .lift-top { display: flex; flex-direction: column; gap: 4px; }
+  .lift-bottom { display: flex; flex-direction: column; gap: 14px; }
+  .lift-hero {
+    font-family: 'SF Pro Display', 'Inter', system-ui, sans-serif;
+    font-size: 46px;
+    font-weight: 600;
+    line-height: 1;
+    letter-spacing: -0.026em;
+    color: var(--primary);
+    font-variant-numeric: tabular-nums;
+    margin-top: 4px;
+  }
+  .lift-sub {
+    font-size: 11.5px;
+    color: var(--muted);
+    letter-spacing: -0.01em;
+  }
+  .lift-detail {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .lift-pill {
+    background: var(--surface-2);
+    border-radius: 10px;
+    padding: 12px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    border: 1px solid var(--hairline);
+  }
+  .lift-pill.is-accent { background: var(--pos-bg); border-color: rgba(0,102,204,0.15); }
+  .lift-pill-label {
+    font-size: 10px;
+    letter-spacing: 0.07em;
+    color: var(--muted);
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+  .lift-pill-value {
+    font-family: 'SF Pro Display', 'Inter', system-ui, sans-serif;
+    font-size: 19px;
+    font-weight: 600;
+    color: var(--ink);
+    letter-spacing: -0.022em;
+    font-variant-numeric: tabular-nums;
+  }
+  .lift-pill.is-accent .lift-pill-value { color: var(--primary); }
+  .lift-share { display: flex; flex-direction: column; gap: 8px; }
+  .lift-share-head { display: flex; justify-content: space-between; align-items: baseline; }
+  .lift-share-label {
+    font-size: 10px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 600;
+  }
+  .lift-share-pct {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+  }
+  .lift-share-pct.accent { color: var(--primary); }
+  /* wk-row: bar list vertically centered, bars thicker, value close to bar */
+  .weekday-bars { display: flex; flex-direction: column; gap: 0; flex: 1; justify-content: center; }
+  .wk-row {
+    display: grid;
+    grid-template-columns: 48px minmax(0, 1fr) 84px;
+    gap: 14px;
+    align-items: center;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--hairline);
+  }
+  .wk-row:last-child { border-bottom: none; }
+  .wk-day { font-size: 12px; color: var(--muted); font-weight: 400; white-space: nowrap; letter-spacing: -0.01em; }
+  .wk-row.weekend .wk-day { color: var(--primary); font-weight: 600; }
+  .wk-bar-wrap { height: 8px; background: var(--surface-2); border-radius: 9999px; overflow: hidden; }
+  .wk-bar-fill {
+    height: 100%; width: 0;
+    background: var(--ink);
+    border-radius: 9999px;
+    transition: width .8s cubic-bezier(.2,.7,.2,1);
+  }
+  .wk-row.weekend .wk-bar-fill { background: var(--primary); }
+  .wk-val { font-size: 12.5px; font-variant-numeric: tabular-nums; text-align: right; color: var(--ink); font-weight: 600; letter-spacing: -0.01em; }
+
+  /* ===== Row bot: Compare (wider) + Ranking ===== */
+  .row-bot { display: grid; grid-template-columns: 1.35fr 1fr; gap: 16px; min-height: 0; }
+  .row-bot > .card { min-height: 460px; }
+
+  /* ===== Sales card — KPI strip across the top (6 cells, occupies ~30% of card height) ===== */
+  .sales-kpi-strip {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 0;
+    border-top: 1px solid var(--hairline);
+    border-bottom: 1px solid var(--hairline);
+    margin: 14px 0 0 0;
+  }
+  .skpi-cell {
+    padding: 18px 20px 16px;
+    border-right: 1px solid var(--hairline);
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-height: 118px;
+  }
+  .skpi-cell:last-child { border-right: none; }
+  /* Two-line label: EN eyebrow on line 1 (weight 600 per Apple ladder), ZH on line 2 (400) */
+  .skpi-label {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+  .skpi-en {
+    font-size: 11px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 600;
+    line-height: 1.3;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .skpi-zh {
+    font-size: 11px;
+    color: var(--muted);
+    font-weight: 400;
+    line-height: 1.3;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  /* Value block: number on its own line, YoY pill below */
+  .skpi-value-row {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    min-width: 0;
+  }
+  .skpi-value-row .pill { flex-shrink: 0; }
+  .skpi-value {
+    font-family: 'SF Pro Display', 'Inter', system-ui, sans-serif;
+    font-size: 30px;
+    font-weight: 600;
+    color: var(--ink);
+    line-height: 1.05;
+    letter-spacing: -0.022em;
+    font-variant-numeric: tabular-nums;
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
+    min-width: 0;
+    white-space: nowrap;
+  }
+  .skpi-unit {
+    font-size: 13px;
+    color: var(--muted);
+    font-weight: 400;
+    letter-spacing: -0.005em;
+    white-space: nowrap;
+  }
+  /* wk-split-bar — still used inside the banner lift block */
+  .wk-split-bar {
+    display: flex;
+    height: 8px;
+    border-radius: 9999px;
+    overflow: hidden;
+    background: var(--surface-2);
+    gap: 2px;
+  }
+  .wk-split-fill { height: 100%; transition: width .9s cubic-bezier(.2,.7,.2,1); }
+  .wk-split-fill.weekday { background: var(--ink); border-radius: 4px 0 0 4px; }
+  .wk-split-fill.weekend { background: var(--primary); border-radius: 0 4px 4px 0; }
+
+  /* ===== Ranking — summary strip above the table ===== */
+  .rank-summary-strip {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0;
+    border-top: 1px solid var(--hairline);
+    border-bottom: 1px solid var(--hairline);
+    margin: 12px 0 0 0;
+  }
+  .rsum-cell {
+    padding: 14px 16px;
+    border-right: 1px solid var(--hairline);
+    min-width: 0;
+  }
+  .rsum-cell:last-child { border-right: none; }
+  .rsum-label {
+    font-size: 10.5px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 600;
+    margin-bottom: 6px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .rsum-value {
+    font-family: 'SF Pro Display', 'Inter', system-ui, sans-serif;
+    font-size: 19px;
+    font-weight: 600;
+    color: var(--ink);
+    line-height: 1.05;
+    letter-spacing: -0.022em;
+    font-variant-numeric: tabular-nums;
+    display: flex; align-items: baseline; gap: 2px;
+  }
+  .rsum-value.is-accent { color: var(--primary); }
+  .rsum-unit { font-size: 12px; color: var(--muted); font-weight: 400; margin-right: 1px; }
+  .rsum-sub {
+    font-size: 10.5px;
+    color: var(--muted);
+    margin-top: 4px;
+    letter-spacing: -0.01em;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Card internals */
+  .card-head { display: flex; justify-content: space-between; align-items: baseline; padding: 12px 16px 0 16px; flex-wrap: wrap; gap: 8px; flex-shrink: 0; }
+  .card-title { font-family: 'SF Pro Display', 'Inter', system-ui, sans-serif; font-weight: 600; font-size: 16px; letter-spacing: -0.014em; color: var(--ink); }
+  .card-title .zh { color: var(--muted); font-weight: 400; }
+  .card-meta { font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .card-body { flex: 1; min-height: 0; padding: 8px 14px 14px 14px; display: flex; flex-direction: column; }
+  .chart-wrap { position: relative; flex: 1; min-height: 240px; width: 100%; }
+  /* Trend card header: title left, controls right, vertically centered */
+  .card-head-trend { align-items: center; }
+  .trend-head-text { min-width: 0; }
+  .trend-head-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  .label-toggle {
+    display: inline-flex; align-items: center; gap: 5px;
+    height: 30px; padding: 0 12px;
+    border: 1px solid var(--hairline); border-radius: 9999px;
+    background: var(--surface); color: var(--muted);
+    font-size: 11.5px; font-weight: 400; cursor: pointer;
+    transition: all .15s ease; white-space: nowrap;
+  }
+  .label-toggle:hover { border-color: var(--primary); color: var(--primary); }
+  .label-toggle.active { background: var(--primary); border-color: var(--primary); color: var(--surface); }
+  .label-toggle:disabled { opacity: 0.4; cursor: not-allowed; }
+  .label-toggle:disabled:hover { border-color: var(--hairline); color: var(--muted); }
+  .chart-wrap canvas { display: block; }
+
+  /* ===== TYPOGRAPHY SYSTEM — unified eyebrow style across all cards ===== */
+  /* Used by: kpi-eyebrow, profile-eyebrow, generic eyebrow */
+  .eyebrow,
+  .kpi-eyebrow,
+  .profile-eyebrow {
+    font-size: 12px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 600;
+    line-height: 1.4;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .kpi-eyebrow { flex: 1; }
+  .profile-eyebrow {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .profile-eyebrow svg { color: var(--muted-2); flex-shrink: 0; }
+  .card-meta {
+    font-size: 11.5px;
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    letter-spacing: -0.01em;
+  }
+  /* ===== Compare chips — Apple pill ===== */
+  .chip-toolbar { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+  .chip-search { flex: 1; padding: 8px 14px; font-size: 12.5px; border: 1px solid var(--hairline); border-radius: 9999px; background: var(--surface-pearl); color: var(--ink); letter-spacing: -0.01em; }
+  .chip-search:focus { outline: none; background: var(--surface); border-color: var(--primary); }
+  .chip-row { display: flex; flex-wrap: wrap; gap: 5px; max-height: 96px; overflow-y: auto; flex-shrink: 0; padding: 2px 0; }
+  .chip { padding: 5px 12px; font-size: 11.5px; font-weight: 400; border-radius: 9999px; background: var(--surface-pearl); color: var(--ink-2); cursor: pointer; transition: all .15s ease; border: 1px solid var(--hairline); display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; letter-spacing: -0.01em; }
+  .chip:hover { background: var(--surface-2); border-color: var(--hairline-2); color: var(--ink); }
+  .chip.active { color: var(--on-dark); font-weight: 600; background: var(--ink); border-color: var(--ink); }
+  .chip .chip-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted-2); flex-shrink: 0; }
+  .chip.active .chip-dot { background: var(--chip-color, var(--primary)); }
+
+  /* ===== Ranking — Apple Store list pattern: no hairlines, hover surfaces highlight ===== */
+  .rank-list-wrap { flex: 1; overflow-y: auto; min-height: 320px; padding-right: 4px; }
+  /* Grid: # | Store | Share-bar (narrow) | Value | % — fixed columns for clean alignment */
+  .rank-head { display: grid; grid-template-columns: 28px minmax(150px, 230px) 1fr 110px 80px; gap: 14px; align-items: center; padding: 0 8px 10px 8px; font-size: 12px; border-bottom: 1px solid var(--hairline); margin: 0 -8px; }
+  .rank-head .eyebrow { font-size: 10.5px; }
+  .rank-head .eyebrow:nth-child(3) { text-align: left; }
+  .rank-head .eyebrow:nth-child(4),
+  .rank-head .eyebrow:nth-child(5) { text-align: right; }
+  .rank-row {
+    display: grid;
+    grid-template-columns: 28px minmax(150px, 230px) 1fr 110px 80px;
+    gap: 14px;
+    align-items: center;
+    padding: 8px;
+    margin: 0 -8px;
+    font-size: 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background .15s;
+  }
+  .rank-row:hover { background: var(--surface-2); }
+  .rank-row.current { background: var(--pos-bg); }
+  .rank-num {
+    font-family: 'SF Pro Display', 'Inter', system-ui, sans-serif;
+    font-weight: 400;
+    color: var(--muted);
+    font-size: 11.5px;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.005em;
+    text-align: left;
+  }
+  .rank-row.top3 .rank-num { color: var(--primary); font-weight: 600; }
+  .rank-name-cell { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+  .rank-name { font-size: 13px; font-weight: 600; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; letter-spacing: -0.01em; line-height: 1.25; }
+  .rank-city { font-size: 11px; color: var(--muted); display: block; letter-spacing: -0.01em; line-height: 1.25; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .rank-bar-wrap { height: 4px; background: var(--surface-2); border-radius: 9999px; overflow: hidden; width: 100%; }
+  .rank-bar-fill { height: 100%; width: 0; background: var(--ink-2); border-radius: 9999px; transition: width .9s cubic-bezier(.2,.7,.2,1); }
+  .rank-row.current .rank-bar-fill { background: var(--primary); }
+  .rank-val { font-variant-numeric: tabular-nums; font-size: 13px; font-weight: 600; color: var(--ink); text-align: right; letter-spacing: -0.01em; }
+  .rank-pct { font-variant-numeric: tabular-nums; font-size: 11px; color: var(--muted); text-align: right; letter-spacing: -0.01em; }
+  .rank-pct.pos { color: var(--pos-text); }
+  .rank-pct.neg { color: var(--neg-text); }
+
+  .empty-banner { text-align: center; padding: 96px 20px; color: var(--muted); font-size: 15px; letter-spacing: -0.011em; line-height: 1.5; }
+  .empty-banner .ico { font-size: 40px; opacity: 0.3; margin-bottom: 16px; }
+  .visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+  .reveal { opacity:0; transform: translateY(6px); transition: opacity .5s ease, transform .5s ease; }
+  .reveal.in { opacity:1; transform: translateY(0); }
+
+  /* =====================================================================
+     UNIFIED RESPONSIVE LAYER — tablet / phone adaptation
+     Breakpoints: 1280 (laptop) · 1024 (tablet landscape) · 768 (tablet
+     portrait) · 480 (phone). Later rules win, so this block overrides the
+     section-local media queries above where they overlap.
+     ===================================================================== */
+
+  /* ---- Tablet landscape & small laptop (≤1280px) ---- */
+  @media (max-width: 1280px) {
+    .dashboard-frame { padding: 18px 20px 36px; }
+    .row-header h1 { font-size: 34px; }
+    .row-header h1 .subtitle { font-size: 18px; }
+    .hero-summary { font-size: 18px; margin-top: 8px; }
+    /* Sales KPI strip: 6 → 3 cols */
+    .sales-kpi-strip { grid-template-columns: repeat(3, 1fr); }
+    .skpi-cell:nth-child(3n) { border-right: none; }
+    .skpi-cell:nth-child(-n+3) { border-bottom: 1px solid var(--hairline); }
+    .skpi-value { font-size: 27px; }
+  }
+
+  /* ---- Tablet portrait (≤1024px) ---- */
+  @media (max-width: 1024px) {
+    .dashboard-frame { padding: 16px 16px 30px; gap: 14px; }
+    /* Bottom row stacks */
+    .row-bot { grid-template-columns: 1fr; }
+    .row-bot > .card { min-height: 0; }
+    .row-bot > .card + .card { margin-top: 0; }
+    /* Banner stacks (already handled at 1023 but reinforce) */
+    .banner-body { grid-template-columns: 1fr; padding: 18px 22px; }
+    .banner-divider { display: none; }
+    .banner-bars { padding-right: 0; }
+    .banner-lift { padding-left: 0; border-top: 1px solid var(--hairline); padding-top: 18px; margin-top: 18px; }
+    /* Profile: 6 → 3 cols (the min-width rules cap at 3 below 1440 already,
+       but ensure 3 holds down here) */
+    .row-profile { grid-template-columns: repeat(3, 1fr); }
+    /* Ranking summary: 3 cols stays but tighten padding */
+    .rsum-cell { padding: 13px 14px; }
+    .rsum-value { font-size: 18px; }
+    /* Compare chart min-height a touch shorter */
+    .chart-wrap { min-height: 220px; }
+  }
+
+  /* ---- Large phone / small tablet (≤768px) ---- */
+  @media (max-width: 768px) {
+    .dashboard-frame { padding: 14px 14px 28px; gap: 12px; }
+    .row-header { padding: 2px 2px 0 2px; }
+    .row-header h1 { font-size: 27px; }
+    .row-header h1 .subtitle { font-size: 15px; margin-left: 6px; display: inline-block; }
+    .hero-summary { font-size: 15px; margin-top: 6px; }
+    .hero-summary .sep { margin: 0 5px; }
+    /* Sales KPI strip: 3 → 2 cols */
+    .sales-kpi-strip { grid-template-columns: repeat(2, 1fr); }
+    .skpi-cell {
+      border-right: 1px solid var(--hairline) !important;
+      border-bottom: 1px solid var(--hairline) !important;
+      padding: 14px 16px;
+      min-height: 96px;
+    }
+    .skpi-cell:nth-child(2n) { border-right: none !important; }
+    .skpi-cell:nth-last-child(-n+2) { border-bottom: none !important; }
+    .skpi-value { font-size: 24px; }
+    .skpi-value-row .pill { font-size: 10px; padding: 2px 7px; }
+    /* Profile: 3 → 2 cols */
+    .row-profile { grid-template-columns: repeat(2, 1fr); }
+    .profile-value { font-size: 22px; }
+    .profile-value.is-text { font-size: 16px; }
+    /* Card titles + section heads smaller */
+    .card-title { font-size: 13px; }
+    .banner-section-eyebrow { font-size: 14.5px; }
+    .lift-hero { font-size: 38px; }
+    /* Ranking summary (3 cells): row 1 = two cells side by side, row 2 = third cell full-width */
+    .rank-summary-strip { grid-template-columns: repeat(2, 1fr); }
+    .rsum-cell {
+      border-right: none;
+      border-bottom: none;
+    }
+    .rsum-cell:first-child { border-right: 1px solid var(--hairline); border-bottom: 1px solid var(--hairline); }
+    .rsum-cell:nth-child(2) { border-bottom: 1px solid var(--hairline); }
+    .rsum-cell:last-child { grid-column: 1 / -1; }
+    /* Ranking rows: hide the share bar column to keep #/store/value/% readable */
+    .rank-head, .rank-row { grid-template-columns: 26px minmax(0,1fr) 92px 60px; }
+    .rank-head .eyebrow:nth-child(3),
+    .rank-row .rank-bar-wrap { display: none; }
+    /* Seg controls wrap nicely */
+    .seg { flex-wrap: wrap; }
+    /* Filter summary: allow wrap */
+    #filterSummary { flex-wrap: wrap; gap: 8px; }
+    .chart-wrap { min-height: 200px; }
+    /* Compare chips scroll area shorter */
+    .chip-row { max-height: 80px; }
+  }
+
+  /* ---- Small phone (≤480px) ---- */
+  @media (max-width: 480px) {
+    .dashboard-frame { padding: 10px 10px 24px; }
+    .row-header h1 { font-size: 23px; }
+    .row-header h1 .subtitle { font-size: 13px; display: block; margin-left: 0; margin-top: 2px; }
+    .hero-summary { font-size: 13.5px; }
+    /* KPI strip: 2 → 1 col */
+    .sales-kpi-strip { grid-template-columns: 1fr; }
+    .skpi-cell {
+      border-right: none !important;
+      border-bottom: 1px solid var(--hairline) !important;
+      min-height: 0;
+      padding: 14px 16px;
+    }
+    .skpi-cell:last-child { border-bottom: none !important; }
+    /* Profile: 2 → 1 col */
+    .row-profile { grid-template-columns: 1fr; }
+    /* Ranking summary: 2 → 1 col */
+    .rank-summary-strip { grid-template-columns: 1fr; }
+    .rsum-cell {
+      border-right: none !important;
+      border-bottom: 1px solid var(--hairline);
+    }
+    .rsum-cell:last-child { border-bottom: none; }
+    /* Banner pills stack */
+    .lift-detail { grid-template-columns: 1fr; }
+    .lift-hero { font-size: 34px; }
+    /* Header buttons full-width feel */
+    .header-actions { width: 100%; }
+    /* Card padding tighter */
+    .card-head { padding: 12px 14px 0; }
+    .card-body { padding: 8px 12px 12px; }
+    .banner-body { padding: 14px 16px; }
+    .wk-row { grid-template-columns: 42px minmax(0,1fr) 72px; gap: 10px; }
+    .wk-val { font-size: 11.5px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="dashboard-frame">
+
+  <header class="row-header">
+    <div>
+      <div class="eyebrow" style="margin-bottom:8px;">Retail Analytics · 零售分析</div>
+      <h1>Store Performance Dashboard<span class="subtitle">· 门店业绩看板</span></h1>
+      <div class="hero-summary" id="heroSummary"><span class="muted">Awaiting Data · 请上传数据</span></div>
+    </div>
+    <div class="header-actions">
+      <div id="cacheStatus" class="cache-pill hidden" role="status">
+        <svg class="check" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg>
+        <span><strong id="cacheName">data</strong> · <span id="cacheMeta">restored</span></span>
+        <button type="button" id="clearCacheBtn" title="Clear cached data · 清除本地缓存" aria-label="Clear cache">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <label for="fileInput" class="btn-ghost" style="cursor:pointer;">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+        </svg>
+        Upload · 上传
+      </label>
+      <input id="fileInput" type="file" accept=".xlsx,.xls,.csv" class="visually-hidden" />
+      <button id="demoBtn" class="btn-link" type="button">Load Demo · 加载示例</button>
+      <button id="shareBtn" class="btn-ghost hidden" type="button">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+          <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+        </svg>
+        Share
+      </button>
+    </div>
+  </header>
+
+  <section class="card" id="filterContainer" style="display:none;">
+    
+    <div id="filterSummary" class="flex items-center justify-between px-4 py-3 cursor-pointer hover:bg-[color:var(--surface-2)] transition" style="min-height: 44px;">
+      <div class="flex items-center gap-4 text-[12.5px] flex-wrap">
+        <div class="flex items-center gap-2">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-[color:var(--muted)]"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+          <span class="text-[color:var(--muted)]">Store:</span>
+          <strong id="sumStore" class="text-[color:var(--ink)]">All stores</strong>
+        </div>
+        <div class="w-[1px] h-3 bg-[color:var(--hairline)] hidden sm:block"></div>
+        <div class="flex items-center gap-2">
+          <span class="text-[color:var(--muted)]">Type:</span>
+          <strong id="sumType" class="text-[color:var(--ink)]">All · 全部</strong>
+        </div>
+        <div class="w-[1px] h-3 bg-[color:var(--hairline)] hidden sm:block"></div>
+        <div class="flex items-center gap-2">
+          <span class="text-[color:var(--muted)]">Period:</span>
+          <strong id="sumPeriod" class="text-[color:var(--ink)]">All time</strong>
+        </div>
+      </div>
+      <div class="flex items-center gap-4 flex-shrink-0">
+        <span id="filterStatusCompact" class="text-[11.5px] text-[color:var(--muted)] num hidden md:inline-block"></span>
+        <div class="btn-ghost text-[11.5px] px-3 py-1 shadow-none border hair">Change · 修改筛选</div>
+      </div>
+    </div>
+
+    <div id="filterControls" class="border-t hair" style="display:none;">
+      <div class="row-filter">
+        <div class="filter-col-store">
+          <div class="eyebrow" style="margin-bottom:5px;">Store · 门店</div>
+          <div class="combo" id="storeCombo">
+            <button type="button" class="combo-trigger num" id="storeTrigger">
+              <span id="storeTriggerLabel">—</span>
+              <svg class="combo-arrow" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="combo-panel" id="storePanel" hidden>
+              <input id="storeSearch" type="text" class="combo-search" placeholder="Search Store · 搜索门店…" />
+              <div class="combo-list" id="storeList"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="filter-col-type">
+          <div class="eyebrow" style="margin-bottom:5px;">Same-Store Type · 同店类型</div>
+          <div class="combo" id="typeCombo">
+            <button type="button" class="combo-trigger" id="typeTrigger">
+              <span id="typeTriggerLabel">All Types · 全部</span>
+              <svg class="combo-arrow" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="combo-panel" id="typePanel" hidden>
+              <div class="combo-list" id="typeList"></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="filter-col-period">
+          <div class="eyebrow" style="margin-bottom:5px;">Period · 时间范围</div>
+          <div class="flex items-center gap-2 flex-wrap">
+            <div class="seg" id="dateSeg">
+              <button type="button" data-preset="7">7D · 7天</button>
+              <button type="button" data-preset="30">30D · 30天</button>
+              <button type="button" data-preset="90">90D · 90天</button>
+              <button type="button" data-preset="mtd">MTD · 月初</button>
+              <button type="button" data-preset="ytd">YTD · 年初</button>
+              <button type="button" data-preset="all" class="active">All · 全部</button>
+            </div>
+            <div class="flex items-center gap-2">
+                <input id="dateFrom" type="date" class="border hair rounded-full px-3 py-1.5 text-[12px] num text-[color:var(--ink)] bg-[color:var(--surface-pearl)] focus:outline-none focus:border-[color:var(--primary)] transition" />
+                <span class="text-[11px] text-[color:var(--muted)]">→</span>
+                <input id="dateTo" type="date" class="border hair rounded-full px-3 py-1.5 text-[12px] num text-[color:var(--ink)] bg-[color:var(--surface-pearl)] focus:outline-none focus:border-[color:var(--primary)] transition" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex justify-between items-center px-4 py-3 bg-[color:var(--surface-2)] border-t hair">
+        <button id="resetFilters" class="btn-link text-[12px]" type="button">Reset Filters · 重置参数</button>
+        <button id="btnCloseFilter" class="btn-ghost" style="" type="button">Apply & Close · 收起面板</button>
+      </div>
+    </div>
+  </section>
+
+  <div id="emptyBanner" class="card empty-banner">
+    <div class="ico">📊</div>
+    <div>No data loaded · 暂无数据</div>
+    <div style="margin-top:8px; font-size:12.5px;">
+      Upload a .xlsx / .csv with the schema in the header comment,
+      or click <strong style="color:var(--primary);">Load demo</strong> to preview.<br/>
+      上传符合表头规范的 Excel / CSV 文件，或点击「加载示例」预览。
+    </div>
+  </div>
+
+  <section class="row-profile" id="profileRow" style="display:none;">
+    <div class="card profile-card reveal" data-stagger="0">
+      <div class="profile-eyebrow">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+        City · 城市
+      </div>
+      <div class="profile-value" id="profCity">—</div>
+      <div class="profile-meta" id="profCityMeta"></div>
+    </div>
+
+    <div class="card profile-card reveal" data-stagger="1">
+      <div class="profile-eyebrow">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+        Area · 面积
+      </div>
+      <div class="profile-value" id="profArea">—</div>
+      <div class="profile-meta" id="profAreaMeta"></div>
+    </div>
+
+    <div class="card profile-card reveal" data-stagger="2">
+      <div class="profile-eyebrow">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+        Same-Store Type · 同店类型
+      </div>
+      <div class="profile-value is-badges" id="profType">—</div>
+      <div class="profile-meta" id="profTypeMeta"></div>
+    </div>
+
+    <div class="card profile-card reveal" data-stagger="3">
+      <div class="profile-eyebrow">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+        Format · 终端形象
+      </div>
+      <div class="profile-value is-badges" id="profFormat">—</div>
+      <div class="profile-meta" id="profFormatMeta"></div>
+    </div>
+
+    <div class="card profile-card reveal" data-stagger="4">
+      <div class="profile-eyebrow">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+        Opened · 首次开业
+      </div>
+      <div class="profile-value num" id="profOpen">—</div>
+      <div class="profile-meta" id="profOpenMeta"></div>
+    </div>
+
+    <div class="card profile-card reveal" data-stagger="5">
+      <div class="profile-eyebrow">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
+        Latest Reno · 最新改造
+      </div>
+      <div class="profile-value num" id="profReno">—</div>
+      <div class="profile-meta" id="profRenoMeta"></div>
+    </div>
+  </section>
+
+  <section class="row-mid" id="rowMid" style="display:none;">
+    <div class="card card-sales">
+      <div class="card-head card-head-trend">
+        <div class="trend-head-text">
+          <div class="card-title">Day-to-Day Sales Trend <span class="zh">· 日销售走势</span></div>
+          <div class="card-meta" id="trendMeta" style="margin-top:3px;">Revenue with 7-Day Moving Average · 销售与七日均线</div>
+        </div>
+        <div class="trend-head-controls">
+          <div class="seg" id="trendMetricSeg">
+            <button type="button" data-metric="revenue" class="active">Revenue · 销售</button>
+            <button type="button" data-metric="atv">ATV · 客单价</button>
+            <button type="button" data-metric="upt">UPT · 连带率</button>
+          </div>
+          <div class="seg" id="granSeg">
+            <button type="button" data-gran="day" class="active">Day · 日</button>
+            <button type="button" data-gran="week">Week · 周</button>
+            <button type="button" data-gran="month">Month · 月</button>
+          </div>
+          <button type="button" id="dataLabelToggle" class="label-toggle" title="Show value labels on bars · 显示柱子数值">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-6M22 20H2"/></svg>
+            <span>Labels · 数值</span>
+          </button>
+        </div>
+      </div>
+      <div class="sales-kpi-strip">
+        <div class="skpi-cell">
+          <div class="skpi-label"><span class="skpi-en">Total Sales</span><span class="skpi-zh">销售金额</span></div>
+          <div class="skpi-value-row">
+            <div class="skpi-value num"><span class="skpi-unit">$</span><span id="kpiRevenue">0</span></div>
+            <span class="pill neut" id="pillRev">—</span>
+          </div>
+        </div>
+        <div class="skpi-cell">
+          <div class="skpi-label"><span class="skpi-en">Sales/m²</span><span class="skpi-zh">坪效</span></div>
+          <div class="skpi-value-row">
+            <div class="skpi-value num"><span class="skpi-unit">$</span><span id="kpiDensity">0</span><span class="skpi-unit">/ m²</span></div>
+            <span class="pill neut" id="pillDensity">—</span>
+          </div>
+        </div>
+        <div class="skpi-cell">
+          <div class="skpi-label"><span class="skpi-en">Daily Avg Trans</span><span class="skpi-zh">日均客单量</span></div>
+          <div class="skpi-value-row">
+            <div class="skpi-value num"><span id="kpiTrans">0</span><span class="skpi-unit">/ day · 天</span></div>
+            <span class="pill neut" id="pillTrans">—</span>
+          </div>
+        </div>
+        <div class="skpi-cell">
+          <div class="skpi-label"><span class="skpi-en">ATV</span><span class="skpi-zh">客单价</span></div>
+          <div class="skpi-value-row">
+            <div class="skpi-value num"><span class="skpi-unit">$</span><span id="kpiATV">0</span></div>
+            <span class="pill neut" id="pillATV">—</span>
+          </div>
+        </div>
+        <div class="skpi-cell">
+          <div class="skpi-label"><span class="skpi-en">UPT</span><span class="skpi-zh">连带率</span></div>
+          <div class="skpi-value-row">
+            <div class="skpi-value num"><span id="kpiIPT">0</span><span class="skpi-unit">items · 件</span></div>
+            <span class="pill neut" id="pillIPT">—</span>
+          </div>
+        </div>
+        <div class="skpi-cell">
+          <div class="skpi-label"><span class="skpi-en">Trading Days</span><span class="skpi-zh">经营天数</span></div>
+          <div class="skpi-value-row">
+            <div class="skpi-value num"><span id="kpiDays">0</span><span class="skpi-unit">days · 天</span></div>
+            <span class="pill neut" id="kpiDaysMeta">—</span>
+          </div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="chart-wrap"><canvas id="chartSales"></canvas></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="row-banner" id="rowBanner" style="display:none;">
+    <div class="card card-weekday-banner">
+      <div class="banner-body">
+        <div class="banner-bars">
+          <div class="banner-bars-head">
+            <div class="banner-section-eyebrow">Weekday Distribution · 按工作日销售分布</div>
+            <div class="banner-section-meta">Daily Average Revenue by Day of Week · 日均销售</div>
+          </div>
+          <div id="weekdayBars" class="weekday-bars"></div>
+        </div>
+        <div class="banner-divider"></div>
+        <div class="banner-lift">
+          <div class="lift-top">
+            <div class="banner-section-eyebrow">Weekend Lift · 周末提升</div>
+            <div class="lift-hero" id="hmWeekendLift">—</div>
+            <div class="lift-sub" id="hmWeekendSub">Sat-Sun vs Mon-Fri · 周末较工作日</div>
+          </div>
+          <div class="lift-bottom">
+            <div class="lift-detail">
+              <div class="lift-pill is-accent">
+                <span class="lift-pill-label">Sat-Sun</span>
+                <span class="lift-pill-value num" id="hmWkndVal">—</span>
+              </div>
+              <div class="lift-pill">
+                <span class="lift-pill-label">Mon-Fri</span>
+                <span class="lift-pill-value num" id="hmWkdayVal">—</span>
+              </div>
+            </div>
+            <div class="lift-share">
+              <div class="lift-share-head">
+                <span class="lift-share-label">Sat-Sun Share · 周末占比</span>
+                <span class="lift-share-pct num accent" id="wkSplitWeekendPct">—</span>
+              </div>
+              <div class="wk-split-bar">
+                <div class="wk-split-fill weekday" id="wkSplitWeekday"></div>
+                <div class="wk-split-fill weekend" id="wkSplitWeekend"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="row-bot" id="rowBot" style="display:none;">
+    <div class="card">
+      <div class="card-head">
+        <div>
+          <div class="card-title">Multi-Store Comparison <span class="zh">· 多门店叠加对比</span></div>
+          <div class="card-meta" style="margin-top:3px;">Click Cards to Toggle, Max 5 Stores · 点击切换，最多 5 家<span class="info-i" style="margin-left:4px;" title="Respects the date filter; ignores store filter so you can compare any combination of stores side-by-side.">i</span></div>
+        </div>
+        <div class="card-meta" id="compareMeta"></div>
+      </div>
+      <div class="card-body" style="gap:10px;">
+        <div class="chip-toolbar"><input id="chipSearch" type="text" class="chip-search" placeholder="Filter stores · 筛选门店…" /></div>
+        <div id="compareChips" class="chip-row"></div>
+        <div class="chart-wrap"><canvas id="chartCompare"></canvas></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head card-head-trend">
+        <div class="trend-head-text">
+          <div class="card-title">Store Ranking <span class="zh">· 门店销售排行</span></div>
+          <div class="card-meta" style="margin-top:3px;" id="rankingMeta"></div>
+        </div>
+        <div class="seg" id="rankSortSeg">
+          <button type="button" data-sort="revenue" class="active">Revenue</button>
+          <button type="button" data-sort="density">Sales/m²</button>
+          <button type="button" data-sort="atv">ATV</button>
+          <button type="button" data-sort="ipt">UPT</button>
+        </div>
+      </div>
+      <div class="rank-summary-strip">
+        <div class="rsum-cell">
+          <div class="rsum-label">Top 3 Share · 头部占比</div>
+          <div class="rsum-value is-accent num" id="rsumTop3">—</div>
+          <div class="rsum-sub" id="rsumTop3Sub">—</div>
+        </div>
+        <div class="rsum-cell">
+          <div class="rsum-label">Median Store · 中位数</div>
+          <div class="rsum-value num"><span class="rsum-unit">$</span><span id="rsumMedian">—</span></div>
+          <div class="rsum-sub" id="rsumMedianSub">—</div>
+        </div>
+        <div class="rsum-cell">
+          <div class="rsum-label">Bottom 10 Share · 尾部占比</div>
+          <div class="rsum-value num" id="rsumBot10">—</div>
+          <div class="rsum-sub" id="rsumBot10Sub">—</div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="rank-head" style="flex-shrink:0;">
+          <span class="eyebrow">#</span><span class="eyebrow">Store · 门店</span><span class="eyebrow">Share · 占比</span>
+          <span class="eyebrow" style="text-align:right;" id="rankColValue">Revenue</span>
+          <span class="eyebrow" style="text-align:right;" id="rankColPct">% Share</span>
+        </div>
+        <div class="rank-list-wrap"><div id="rankingList"></div></div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<!-- Baked data slot · 烤入数据槽 — populated by data-injector.html for deployed builds. Leave as null for the blank/upload version. -->
+<script id="bakedData" type="application/json">null</script>
+
+<script>
+/* ===================================================================
+   Retail Performance Dashboard
+=================================================================== */
+
+Chart.defaults.font.family = "'SF Pro Text','SF Pro Display','Inter','PingFang SC','Microsoft YaHei',sans-serif";
+Chart.defaults.font.size = 11;
+Chart.defaults.color = '#7a7a7a';
+Chart.defaults.borderColor = '#e0e0e0';
+Chart.defaults.animation.duration = 700;
+Chart.defaults.animation.easing = 'easeOutQuart';
+
+const COLORS = { primary: '#0066cc', primaryFocus: '#0071e3', primaryOnDark: '#2997ff', primaryDeep: '#004a99', ink: '#1d1d1f', muted: '#7a7a7a', hair: '#e0e0e0', pos: '#0066cc', neg: '#e84444' };
+// Compare palette stays restrained — variations of blue + neutral, no second brand color
+// iOS system colors — Apple's canonical palette for data viz, distinct hues, balanced saturation
+const COMPARE_PALETTE = ['#0066cc', '#af52de', '#ff9500', '#34c759', '#ff3b30'];
+
+const FIELD_ALIASES = {
+  Date:         ['日历日期', 'Date'],
+  Store:        ['店铺名称', 'Store'],
+  StoreCode:    ['店铺代码'],
+  City:         ['城市', 'City'],
+  State:        ['州'],
+  Area:         ['销售面积本期', 'Area_SQM', 'Area'],
+  AreaPrior:    ['销售面积同期'],
+  OpeningDate:  ['首次开业时间', 'Opening_Date'],
+  Revenue:      ['销售金额本期', 'Revenue'],
+  RevenuePrior: ['销售金额同期'],
+  Transactions: ['客单量本期', 'Transactions'],
+  TransPrior:   ['客单量同期'],
+  Items:        ['销售数量本期', 'Items_Sold', 'Items'],
+  ItemsPrior:   ['销售数量同期'],
+  TradingFlag:  ['有效流水天数'],
+  SameStoreType:['同店类型'],
+  RenoEnd:      ['最新改造结束时间'],
+  RenoStart:    ['最新改造开始时间'],
+  StoreFormat:  ['终端形象等级'],
+  StoreNature:  ['店铺性质'],
+};
+
+function pickField(row, aliases) { for (const k of aliases) { if (row[k] !== undefined && row[k] !== null && row[k] !== '') return row[k]; } return null; }
+
+let RAW = [];
+let SELECTED_STORES = [];  // empty = all stores
+let SELECTED_TYPES = [];   // empty = all types
+let DATE_FROM = null, DATE_TO = null;
+let DATA_MIN = null, DATA_MAX = null;
+let CURRENT_PRESET = 'all';
+let GRAN = 'day';
+let TREND_METRIC = 'revenue'; // revenue | atv | upt
+let SHOW_DATA_LABELS = false;
+let RANK_METRIC = 'revenue';
+let COMPARE_STORES = [];
+let SUPPRESS_URL_WRITE = false;
+const charts = {};
+
+const fmtMoney  = (n)  => n == null ? '—' : Math.round(n).toLocaleString('en-US');
+const fmtMoney2 = (n)  => n == null ? '—' : n.toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmtInt    = (n)  => n == null ? '—' : Math.round(n).toLocaleString('en-US');
+const fmtNum1   = (n)  => n == null ? '—' : n.toFixed(1);
+const fmtNum2   = (n)  => n == null ? '—' : n.toFixed(2);
+
+function parseDate(v) {
+  if (v == null || v === '' || v === '暂无') return null;
+  if (v instanceof Date) return v;
+  if (typeof v === 'number') { const d = XLSX.SSF.parse_date_code(v); if (!d) return null; return new Date(Date.UTC(d.y, d.m-1, d.d)); }
+  const s = String(v).trim(); if (!s || s === '暂无') return null;
+  const iso = new Date(s); if (!isNaN(iso.getTime())) return iso;
+  const m = s.match(/(\d{1,4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,4})/);
+  if (m) { let [_, a, b, c] = m.map(Number); if (a > 31) return new Date(Date.UTC(a, b-1, c)); return new Date(Date.UTC(c, b-1, a)); } return null;
+}
+function isoDay(d) { return d.toISOString().slice(0,10); }
+function weekKey(d) {
+  const dt = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())); const day = (dt.getUTCDay() + 6) % 7; dt.setUTCDate(dt.getUTCDate() - day + 3);
+  const firstThursday = new Date(Date.UTC(dt.getUTCFullYear(),0,4)); const week = 1 + Math.round(((dt - firstThursday)/86400000 - 3 + (firstThursday.getUTCDay()+6)%7) / 7);
+  return `${dt.getUTCFullYear()}-W${String(week).padStart(2,'0')}`;
+}
+function monthKey(d) { return `${d.getUTCFullYear()}-${String(d.getUTCMonth()+1).padStart(2,'0')}`; }
+function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c])); }
+function toNum(v) { if (v == null || v === '' || v === '暂无') return 0; const n = +v; return isNaN(n) ? 0 : n; }
+
+const observer = new IntersectionObserver((entries) => { entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('in'); }); }, { threshold: 0.1 });
+function bindReveal() { document.querySelectorAll('.reveal').forEach((el) => { const stagger = parseInt(el.dataset.stagger || 0, 10); el.style.transitionDelay = (stagger * 60) + 'ms'; observer.observe(el); }); }
+function animateNumber(el, target, fmt = fmtInt, dur = 800) {
+  const start = parseFloat(el.dataset.current || '0'); const startTs = performance.now();
+  const step = (ts) => { const t = Math.min(1, (ts - startTs) / dur); const eased = 1 - Math.pow(1 - t, 3); const cur = start + (target - start) * eased; el.textContent = fmt(cur); if (t < 1) requestAnimationFrame(step); else el.dataset.current = target; };
+  requestAnimationFrame(step);
+}
+
+function readUrlState() {
+  if (!location.hash) return null;
+  const p = new URLSearchParams(location.hash.slice(1));
+  return { store: p.get('store'), type: p.get('type'), preset: p.get('preset'), from: p.get('from'), to: p.get('to'), gran: p.get('gran'), sort: p.get('sort'), trend: p.get('trend'), labels: p.get('labels'), cmp: p.get('cmp')?.split(',').filter(Boolean) || null };
+}
+function writeUrlState() {
+  if (SUPPRESS_URL_WRITE || !RAW.length) return;
+  const p = new URLSearchParams();
+  if (SELECTED_STORES.length) p.set('store', SELECTED_STORES.join('|'));
+  if (SELECTED_TYPES.length) p.set('type', SELECTED_TYPES.join('|'));
+  if (CURRENT_PRESET !== 'all') p.set('preset', CURRENT_PRESET);
+  if (CURRENT_PRESET === 'custom' && DATE_FROM && DATE_TO) { p.set('from', fmtInputDate(DATE_FROM)); p.set('to', fmtInputDate(DATE_TO)); }
+  if (GRAN !== 'day') p.set('gran', GRAN); if (RANK_METRIC !== 'revenue') p.set('sort', RANK_METRIC);
+  if (TREND_METRIC !== 'revenue') p.set('trend', TREND_METRIC);
+  if (SHOW_DATA_LABELS) p.set('labels', '1');
+  if (COMPARE_STORES.length) p.set('cmp', COMPARE_STORES.join(','));
+  const s = p.toString(); history.replaceState(null, '', s ? '#' + s : location.pathname);
+}
+
+function handleFile(file) {
+  const reader = new FileReader();
+  reader.onload = (e) => { try { const data = new Uint8Array(e.target.result); const wb = XLSX.read(data, { type: 'array', cellDates: false }); const sheet = wb.Sheets[wb.SheetNames[0]]; const rows = XLSX.utils.sheet_to_json(sheet, { defval: null }); ingestRows(rows, file.name); } catch (err) { alert(`Parse error · 解析失败: ${err.message}`); } };
+  reader.readAsArrayBuffer(file);
+}
+
+function ingestRows(rows, fileName) {
+  if (!rows.length) { alert('No rows found in the file · 文件为空'); return; }
+  const normalized = rows.map(r => { const o = {}; Object.keys(r).forEach(k => { o[String(k).trim()] = r[k]; }); return o; });
+  const sample = normalized[0]; const hasField = (alias) => alias.some(k => k in sample);
+  const missing = []; ['Date','Store','Area','Revenue','Transactions','Items','City','OpeningDate'].forEach(f => { if (!hasField(FIELD_ALIASES[f])) missing.push(FIELD_ALIASES[f][0]); });
+  if (missing.length) { alert(`Missing required fields · 缺少必要字段:\n${missing.join('\n')}`); return; }
+
+  RAW = normalized.map(r => {
+    const tradingFlag = pickField(r, FIELD_ALIASES.TradingFlag);
+    return { Date: parseDate(pickField(r, FIELD_ALIASES.Date)), Store: String(pickField(r, FIELD_ALIASES.Store) || '').trim(), StoreCode: String(pickField(r, FIELD_ALIASES.StoreCode) || '').trim(), City: String(pickField(r, FIELD_ALIASES.City) || '').trim(), State: String(pickField(r, FIELD_ALIASES.State) || '').trim(), Area: toNum(pickField(r, FIELD_ALIASES.Area)), AreaPrior: toNum(pickField(r, FIELD_ALIASES.AreaPrior)), OpeningDate: parseDate(pickField(r, FIELD_ALIASES.OpeningDate)), Revenue: toNum(pickField(r, FIELD_ALIASES.Revenue)), RevenuePrior: toNum(pickField(r, FIELD_ALIASES.RevenuePrior)), Transactions: toNum(pickField(r, FIELD_ALIASES.Transactions)), TransPrior: toNum(pickField(r, FIELD_ALIASES.TransPrior)), Items: toNum(pickField(r, FIELD_ALIASES.Items)), ItemsPrior: toNum(pickField(r, FIELD_ALIASES.ItemsPrior)), TradingFlag: tradingFlag == null ? null : toNum(tradingFlag), SameStoreType: String(pickField(r, FIELD_ALIASES.SameStoreType) || '').trim(), RenoEnd: parseDate(pickField(r, FIELD_ALIASES.RenoEnd)), StoreFormat: String(pickField(r, FIELD_ALIASES.StoreFormat) || '').trim(), StoreNature: String(pickField(r, FIELD_ALIASES.StoreNature) || '').trim() };
+  }).filter(r => r.Date && r.Store);
+
+  if (!RAW.length) { alert('No valid rows after parsing · 解析后无有效数据'); return; }
+
+  document.getElementById('emptyBanner').style.display = 'none';
+  document.getElementById('filterContainer').style.display = 'block';
+  document.getElementById('profileRow').style.display = 'grid';
+  document.getElementById('rowMid').style.display = 'block';
+  document.getElementById('rowBanner').style.display = 'block';
+  document.getElementById('rowBot').style.display = 'grid';
+  document.getElementById('shareBtn').classList.remove('hidden');
+
+  initialiseFilters();
+
+  // Persist to IndexedDB (demo data skipped — only real uploads cached)
+  if (fileName !== 'demo') {
+    saveToIDB(fileName); // async, non-blocking — pill appears when done
+  } else {
+    hideCacheIndicator();
+  }
+}
+
+function initialiseFilters() {
+  const ds = RAW.map(r => r.Date).sort((a,b)=>a-b); DATA_MIN = ds[0]; DATA_MAX = ds[ds.length-1];
+  const url = readUrlState(); SUPPRESS_URL_WRITE = true;
+  if (url) {
+    if (url.gran && ['day','week','month'].includes(url.gran)) GRAN = url.gran;
+    if (url.trend && ['revenue','atv','upt'].includes(url.trend)) TREND_METRIC = url.trend;
+    if (url.labels === '1') SHOW_DATA_LABELS = true;
+    if (url.sort) RANK_METRIC = url.sort;
+    if (url.cmp) COMPARE_STORES = url.cmp;
+    const allStores = new Set(RAW.map(r => r.Store));
+    if (url.store) { const want = url.store.split('|').filter(s => allStores.has(s)); if (want.length) SELECTED_STORES = want; }
+    const allTypes = new Set(RAW.map(r => r.SameStoreType).filter(Boolean));
+    if (url.type) { const wantT = url.type.split('|').filter(t => allTypes.has(t)); if (wantT.length) SELECTED_TYPES = wantT; }
+    if (url.preset === 'custom' && url.from && url.to) { DATE_FROM = parseInputDate(url.from); DATE_TO = parseInputDate(url.to); CURRENT_PRESET = 'custom'; } 
+    else if (url.preset) computePreset(url.preset); else computePreset('all');
+  } else computePreset('all');
+
+  if (!COMPARE_STORES.length) {
+    const byStore = new Map(); RAW.forEach(r => byStore.set(r.Store, (byStore.get(r.Store) || 0) + r.Revenue));
+    const top = Array.from(byStore.entries()).sort((a,b) => b[1] - a[1]); COMPARE_STORES = top.slice(0, Math.min(3, top.length)).map(t => t[0]);
+  }
+
+  syncGranUI(); syncTrendMetricUI(); syncSortUI(); syncFilterUI(); buildComboList(); buildCompareChips(); render(); SUPPRESS_URL_WRITE = false;
+}
+
+function fmtInputDate(d) { return d ? d.toISOString().slice(0,10) : ''; }
+function parseInputDate(s) { if (!s) return null; const [y,m,d] = s.split('-').map(Number); return new Date(Date.UTC(y, m-1, d)); }
+function computePreset(preset) {
+  if (!DATA_MAX) return; CURRENT_PRESET = preset; let from = DATA_MIN, to = DATA_MAX;
+  if (preset === 'all') { from = DATA_MIN; to = DATA_MAX; }
+  else if (preset === 'mtd') from = new Date(Date.UTC(DATA_MAX.getUTCFullYear(), DATA_MAX.getUTCMonth(), 1));
+  else if (preset === 'ytd') from = new Date(Date.UTC(DATA_MAX.getUTCFullYear(), 0, 1));
+  else if (/^\d+$/.test(preset)) { const n = parseInt(preset, 10); from = new Date(DATA_MAX); from.setUTCDate(from.getUTCDate() - (n - 1)); }
+  if (from < DATA_MIN) from = DATA_MIN; DATE_FROM = from; DATE_TO = to;
+}
+function applyPreset(preset) { computePreset(preset); syncFilterUI(); render(); writeUrlState(); }
+
+function syncFilterUI() {
+  document.getElementById('dateFrom').value = fmtInputDate(DATE_FROM); document.getElementById('dateTo').value   = fmtInputDate(DATE_TO);
+  document.getElementById('dateFrom').min = fmtInputDate(DATA_MIN); document.getElementById('dateFrom').max = fmtInputDate(DATA_MAX);
+  document.getElementById('dateTo').min   = fmtInputDate(DATA_MIN); document.getElementById('dateTo').max   = fmtInputDate(DATA_MAX);
+  document.querySelectorAll('#dateSeg button').forEach(b => { b.classList.toggle('active', b.dataset.preset === CURRENT_PRESET); });
+
+  const stores = uniqueStores();
+  // 1. Store trigger label: 0=all / 1=name / N=count
+  const triggerLabel = document.getElementById('storeTriggerLabel');
+  if (!SELECTED_STORES.length) { triggerLabel.textContent = `All Stores · 全部 (${stores.length})`; }
+  else if (SELECTED_STORES.length === 1) { const s = SELECTED_STORES[0]; const code = RAW.find(r => r.Store === s)?.StoreCode || ''; triggerLabel.textContent = code ? `${s} · ${code}` : s; }
+  else { triggerLabel.textContent = `${SELECTED_STORES.length} Stores · 已选 ${SELECTED_STORES.length} 家`; }
+
+  // 2. Summary strip - Store
+  document.getElementById('sumStore').textContent = !SELECTED_STORES.length ? 'All Stores 全部'
+    : SELECTED_STORES.length === 1 ? SELECTED_STORES[0]
+    : `${SELECTED_STORES.length} Stores · ${SELECTED_STORES.length} 家`;
+
+  // 2b. Same-store type — trigger label + summary
+  const typeLbl = document.getElementById('typeTriggerLabel');
+  if (typeLbl) {
+    typeLbl.textContent = !SELECTED_TYPES.length ? `All Types · 全部 (${uniqueTypes().length})`
+      : SELECTED_TYPES.length === 1 ? SELECTED_TYPES[0]
+      : `${SELECTED_TYPES.length} Types · 已选 ${SELECTED_TYPES.length} 类`;
+  }
+  const sumType = document.getElementById('sumType');
+  if (sumType) {
+    sumType.textContent = !SELECTED_TYPES.length ? 'All · 全部'
+      : SELECTED_TYPES.length === 1 ? SELECTED_TYPES[0]
+      : `${SELECTED_TYPES.length} Types · ${SELECTED_TYPES.length} 类`;
+  }
+
+  // 3. Update summary strip - Period
+  let periodStr = 'All time';
+  if (CURRENT_PRESET === 'custom') { periodStr = `${fmtInputDate(DATE_FROM)} ~ ${fmtInputDate(DATE_TO)}`; }
+  else {
+    const btn = document.querySelector(`#dateSeg button[data-preset="${CURRENT_PRESET}"]`);
+    if (btn) periodStr = btn.textContent;
+  }
+  document.getElementById('sumPeriod').textContent = periodStr;
+
+  // 4. Update status strings
+  const filtered = filteredRows(); const dateSpan = DATE_FROM && DATE_TO ? Math.round((DATE_TO - DATE_FROM)/86400000) + 1 : 0;
+  const bits = [];
+  if (SELECTED_STORES.length === 1) {
+    const sample = filtered[0] || RAW.find(r => r.Store === SELECTED_STORES[0]);
+    if (sample) { const meta = [sample.City, sample.Area ? `${sample.Area} m²` : null].filter(Boolean); bits.push(meta.join(' · ')); }
+  } else {
+    const inStores = new Set(filtered.map(r => r.Store)); bits.push(`${inStores.size} stores · 家`);
+  }
+  bits.push(`${dateSpan} days · 天`, `${filtered.length} rows · 行`);
+  document.getElementById('filterStatusCompact').textContent = bits.join('   ');
+
+  // Hero summary line under h1 — store count · period · row count
+  const hero = document.getElementById('heroSummary');
+  if (hero) {
+    if (!RAW.length) {
+      hero.innerHTML = '<span class="muted">Awaiting Data · 请上传数据</span>';
+    } else {
+      let storePart;
+      if (SELECTED_STORES.length === 1) {
+        const s = SELECTED_STORES[0];
+        const sample = filtered[0] || RAW.find(r => r.Store === s);
+        const cityState = sample ? [sample.City, sample.State].filter(Boolean).join(', ') : '';
+        storePart = `<span class="accent">${s}</span>${cityState ? ' <span class="muted">· ' + cityState + '</span>' : ''}`;
+      } else {
+        const inStores = new Set(filtered.map(r => r.Store));
+        storePart = `<span class="accent">${inStores.size}</span> stores`;
+      }
+      const rowsTxt = filtered.length.toLocaleString();
+      hero.innerHTML = `${storePart} <span class="sep">·</span> <span class="accent">${periodStr}</span> <span class="sep">·</span> <span class="muted">${rowsTxt} rows</span>`;
+    }
+  }
+}
+
+function syncGranUI() { document.querySelectorAll('#granSeg button').forEach(b => b.classList.toggle('active', b.dataset.gran === GRAN)); }
+function syncTrendMetricUI() { document.querySelectorAll('#trendMetricSeg button').forEach(b => b.classList.toggle('active', b.dataset.metric === TREND_METRIC)); }
+function syncSortUI() { document.querySelectorAll('#rankSortSeg button').forEach(b => b.classList.toggle('active', b.dataset.sort === RANK_METRIC)); }
+function uniqueStores() { return Array.from(new Set(RAW.map(r => r.Store))).sort(); }
+
+const combo = { el: () => document.getElementById('storeCombo'), panel: () => document.getElementById('storePanel'), search: () => document.getElementById('storeSearch'), list: () => document.getElementById('storeList') };
+function openCombo() { combo.el().classList.add('open'); combo.panel().hidden = false; combo.search().value = ''; buildComboList(); setTimeout(() => combo.search().focus(), 30); }
+function closeCombo() { combo.el().classList.remove('open'); combo.panel().hidden = true; }
+function toggleCombo() { combo.el().classList.contains('open') ? closeCombo() : openCombo(); }
+
+function buildComboList() {
+  const q = combo.search().value.trim().toLowerCase(); const stores = uniqueStores(); const byStore = new Map(); RAW.forEach(r => { if (!byStore.has(r.Store)) byStore.set(r.Store, r); });
+  const items = []; if (stores.length > 1) items.push({ value:'ALL', label:`All Stores · 全部 (${stores.length})`, meta:'' });
+  stores.forEach(s => { const ref = byStore.get(s); const metaBits = [ref?.StoreCode, ref?.City].filter(Boolean); items.push({ value:s, label:s, meta: metaBits.join(' · ') }); });
+  const filtered = items.filter(it => !q || it.label.toLowerCase().includes(q) || (it.meta && it.meta.toLowerCase().includes(q)));
+  const ul = combo.list(); ul.innerHTML = '';
+  if (!filtered.length) { ul.innerHTML = '<div class="combo-empty">No Match · 无结果</div>'; return; }
+  filtered.forEach(it => {
+    const isSel = it.value === 'ALL' ? !SELECTED_STORES.length : SELECTED_STORES.includes(it.value);
+    const el = document.createElement('div'); el.className = 'combo-option' + (isSel ? ' selected' : '');
+    el.innerHTML = `<span>${escapeHtml(it.label)}</span>${it.meta ? `<span class="opt-meta">${escapeHtml(it.meta)}</span>` : ''}`;
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (it.value === 'ALL') { SELECTED_STORES = []; }
+      else { const i = SELECTED_STORES.indexOf(it.value); if (i >= 0) SELECTED_STORES.splice(i, 1); else SELECTED_STORES.push(it.value); }
+      buildComboList(); syncFilterUI(); render(); writeUrlState();
+    });
+    ul.appendChild(el);
+  });
+}
+
+/* ---- Same-store type combo ---- */
+const typeCombo = { el: () => document.getElementById('typeCombo'), panel: () => document.getElementById('typePanel'), list: () => document.getElementById('typeList') };
+function openTypeCombo() { typeCombo.el().classList.add('open'); typeCombo.panel().hidden = false; buildTypeList(); }
+function closeTypeCombo() { typeCombo.el().classList.remove('open'); typeCombo.panel().hidden = true; }
+function toggleTypeCombo() { typeCombo.el().classList.contains('open') ? closeTypeCombo() : openTypeCombo(); }
+function uniqueTypes() { return Array.from(new Set(RAW.map(r => r.SameStoreType).filter(Boolean))).sort(); }
+
+function buildTypeList() {
+  const types = uniqueTypes();
+  // Count stores per type for the meta column
+  const storesByType = new Map();
+  RAW.forEach(r => { if (!r.SameStoreType) return; if (!storesByType.has(r.SameStoreType)) storesByType.set(r.SameStoreType, new Set()); storesByType.get(r.SameStoreType).add(r.Store); });
+  const items = [{ value: 'ALL', label: `All Types · 全部 (${types.length})`, meta: '' }];
+  types.forEach(t => items.push({ value: t, label: t, meta: `${storesByType.get(t)?.size || 0} stores · 家` }));
+  const ul = typeCombo.list(); ul.innerHTML = '';
+  items.forEach(it => {
+    const isSel = it.value === 'ALL' ? !SELECTED_TYPES.length : SELECTED_TYPES.includes(it.value);
+    const el = document.createElement('div'); el.className = 'combo-option' + (isSel ? ' selected' : '');
+    el.innerHTML = `<span>${escapeHtml(it.label)}</span>${it.meta ? `<span class="opt-meta">${escapeHtml(it.meta)}</span>` : ''}`;
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (it.value === 'ALL') { SELECTED_TYPES = []; }
+      else { const i = SELECTED_TYPES.indexOf(it.value); if (i >= 0) SELECTED_TYPES.splice(i, 1); else SELECTED_TYPES.push(it.value); }
+      buildTypeList(); syncFilterUI(); buildCompareChips(); render(); writeUrlState();
+    });
+    ul.appendChild(el);
+  });
+}
+
+function buildCompareChips() {
+  const stores = Array.from(new Set(typeFilter(RAW).map(r => r.Store))).sort(); const row = document.getElementById('compareChips'); row.innerHTML = '';
+  const sorted = stores.slice().sort((a, b) => { const ai = COMPARE_STORES.indexOf(a); const bi = COMPARE_STORES.indexOf(b); if (ai >= 0 && bi >= 0) return ai - bi; if (ai >= 0) return -1; if (bi >= 0) return 1; return a.localeCompare(b); });
+  const q = (document.getElementById('chipSearch')?.value || '').trim().toLowerCase(); const filtered = q ? sorted.filter(s => s.toLowerCase().includes(q) || COMPARE_STORES.includes(s)) : sorted;
+  const limitReached = COMPARE_STORES.length >= 5;
+  filtered.forEach(s => {
+    const idx = COMPARE_STORES.indexOf(s); const active = idx >= 0; const color = active ? COMPARE_PALETTE[idx % COMPARE_PALETTE.length] : null;
+    const chip = document.createElement('button'); chip.type = 'button'; chip.className = 'chip' + (active ? ' active' : '');
+    if (color) chip.style.setProperty('--chip-color', color); if (!active && limitReached) chip.style.opacity = '0.4';
+    chip.innerHTML = `<span class="chip-dot"></span>${escapeHtml(s)}`; chip.title = active ? 'Click to remove' : (limitReached ? 'Limit 5' : 'Click to add');
+    chip.addEventListener('click', () => { const i = COMPARE_STORES.indexOf(s); if (i >= 0) { if (COMPARE_STORES.length > 1) COMPARE_STORES.splice(i, 1); } else if (COMPARE_STORES.length < 5) COMPARE_STORES.push(s); buildCompareChips(); renderCompareChart(); writeUrlState(); });
+    row.appendChild(chip);
+  });
+  document.getElementById('compareMeta').textContent = `${COMPARE_STORES.length}/5 selected · 已选 ${COMPARE_STORES.length} 家 / 共 ${stores.length} 家`;
+}
+
+function typeFilter(rows) { if (!SELECTED_TYPES.length) return rows; const s = new Set(SELECTED_TYPES); return rows.filter(r => s.has(r.SameStoreType)); }
+function filteredRows() { let rows = RAW.slice(); if (SELECTED_STORES.length) { const s = new Set(SELECTED_STORES); rows = rows.filter(r => s.has(r.Store)); } rows = typeFilter(rows); if (DATE_FROM) rows = rows.filter(r => r.Date >= DATE_FROM); if (DATE_TO) rows = rows.filter(r => r.Date <= DATE_TO); return rows; }
+function dateFilteredRows() { let rows = typeFilter(RAW.slice()); if (DATE_FROM) rows = rows.filter(r => r.Date >= DATE_FROM); if (DATE_TO) rows = rows.filter(r => r.Date <= DATE_TO); return rows; }
+
+function aggregateBy(rows, gran) {
+  const keyFn = gran === 'week' ? weekKey : gran === 'month' ? monthKey : isoDay; const map = new Map();
+  rows.forEach(r => {
+    const k = keyFn(r.Date);
+    if (!map.has(k)) map.set(k, { key:k, date:r.Date, Revenue:0, Transactions:0, Items:0, RevenuePrior:0, TransPrior:0, ItemsPrior:0, Area:0, AreaPrior:0, days:new Set(), tradingDays:new Set(), storesArea: new Map() });
+    const o = map.get(k); o.Revenue += r.Revenue; o.Transactions += r.Transactions; o.Items += r.Items; o.RevenuePrior += r.RevenuePrior; o.TransPrior += r.TransPrior; o.ItemsPrior += r.ItemsPrior; o.days.add(isoDay(r.Date));
+    if ((r.TradingFlag != null && r.TradingFlag > 0) || (r.TradingFlag == null && r.Revenue > 0)) o.tradingDays.add(isoDay(r.Date));
+    if (!o.storesArea.has(r.Store) || o.storesArea.get(r.Store) < r.Area) o.storesArea.set(r.Store, r.Area); if (r.Date < o.date) o.date = r.Date;
+  });
+  map.forEach(o => { o.Area = Array.from(o.storesArea.values()).reduce((s,v)=>s+v, 0); }); return Array.from(map.values()).sort((a,b) => a.date - b.date);
+}
+
+function render() {
+  const rows = filteredRows();
+  if (!rows.length) {
+    ['kpiRevenue','kpiTrans','kpiATV','kpiIPT','kpiDensity','kpiDays'].forEach(id => { const el = document.getElementById(id); el.textContent = '0'; el.dataset.current = '0'; });
+    ['pillRev','pillTrans','pillATV','pillIPT','pillDensity'].forEach(id => { const el = document.getElementById(id); el.className = 'pill neut'; el.textContent = '—'; });
+    document.getElementById('kpiDaysMeta').textContent = '—';
+    ['sales','compare'].forEach(destroy);
+    document.getElementById('rankingList').innerHTML = '';
+    document.getElementById('rankingMeta').textContent = '';
+    renderStoreProfile();
+    renderWeekday();  // handles its own empty state (clears stats, weekday bars, etc.)
+    return;
+  }
+
+  const totRev = rows.reduce((s,r)=>s+r.Revenue, 0); const totTrans = rows.reduce((s,r)=>s+r.Transactions, 0); const totItems = rows.reduce((s,r)=>s+r.Items, 0);
+  const totRevPrior = rows.reduce((s,r)=>s+r.RevenuePrior, 0); const totTransPrior = rows.reduce((s,r)=>s+r.TransPrior, 0); const totItemsPrior = rows.reduce((s,r)=>s+r.ItemsPrior, 0);
+  const storeArea = new Map(), storeAreaPrior = new Map();
+  rows.forEach(r => { if (!storeArea.has(r.Store) || storeArea.get(r.Store) < r.Area) storeArea.set(r.Store, r.Area); if (!storeAreaPrior.has(r.Store) || storeAreaPrior.get(r.Store) < r.AreaPrior) storeAreaPrior.set(r.Store, r.AreaPrior); });
+  const area = Array.from(storeArea.values()).reduce((s,v)=>s+v, 0); const areaPrior = Array.from(storeAreaPrior.values()).reduce((s,v)=>s+v, 0);
+
+  // Trading days — used to normalise efficiency metrics
+  const tradingDates = new Set(rows.filter(r => (r.TradingFlag != null && r.TradingFlag > 0) || (r.TradingFlag == null && r.Revenue > 0)).map(r => isoDay(r.Date)));
+  const tradingDays = tradingDates.size;
+  // Prior-period trading days (estimated from rows that have prior data)
+  const tradingDatesPrior = new Set(rows.filter(r => r.RevenuePrior > 0).map(r => isoDay(r.Date)));
+  const tradingDaysPrior = tradingDatesPrior.size;
+
+  // Volume metrics (affected by trading days)
+  const density = area ? totRev / area : 0;
+  const densityPrior = areaPrior ? totRevPrior / areaPrior : 0;
+
+  // Efficiency metrics (normalised — NOT affected by trading days)
+  const dailyTrans = tradingDays ? totTrans / tradingDays : 0;
+  const dailyTransPrior = tradingDaysPrior ? totTransPrior / tradingDaysPrior : 0;
+  const atv = totTrans ? totRev / totTrans : 0;
+  const atvPrior = totTransPrior ? totRevPrior / totTransPrior : 0;
+  const upt = totTrans ? totItems / totTrans : 0;
+  const uptPrior = totTransPrior ? totItemsPrior / totTransPrior : 0;
+
+  // Update KPI cards (order: Total Sales, Sales/Per M², Daily Avg Trans, ATV, UPT, Trading Days)
+  animateNumber(document.getElementById('kpiRevenue'), totRev, fmtMoney);
+  animateNumber(document.getElementById('kpiDensity'), density, fmtMoney2);
+  animateNumber(document.getElementById('kpiTrans'), dailyTrans, fmtNum1);
+  animateNumber(document.getElementById('kpiATV'), atv, fmtMoney2);
+  animateNumber(document.getElementById('kpiIPT'), upt, fmtNum2);
+  animateNumber(document.getElementById('kpiDays'), tradingDays, fmtInt);
+
+  setPill('pillRev', totRev, totRevPrior);
+  setPill('pillDensity', density, densityPrior);
+  setPill('pillTrans', dailyTrans, dailyTransPrior);
+  setPill('pillATV', atv, atvPrior);
+  setPill('pillIPT', upt, uptPrior);
+
+  // Trading Days — coverage pill (e.g. "100% · 期内 137 天")
+  const totalDays = DATE_FROM && DATE_TO ? Math.round((DATE_TO - DATE_FROM)/86400000) + 1 : 0;
+  const coverage = totalDays ? (tradingDays / totalDays * 100) : 0;
+  document.getElementById('kpiDaysMeta').textContent = totalDays
+    ? `${coverage.toFixed(0)}% · 期内 ${totalDays} 天`
+    : '—';
+
+  const agg = aggregateBy(rows, GRAN); const labels = agg.map(o => GRAN === 'day' ? isoDay(o.date).slice(5) : o.key);
+  // series.trans = daily avg per aggregation bucket
+  const series = {
+    rev:     agg.map(o => o.Revenue),
+    density: agg.map(o => o.Area ? o.Revenue / o.Area : 0),
+    trans:   agg.map(o => o.tradingDays.size ? o.Transactions / o.tradingDays.size : 0),
+    atv:     agg.map(o => o.Transactions ? o.Revenue / o.Transactions : 0),
+    upt:     agg.map(o => o.Transactions ? o.Items / o.Transactions : 0),
+  };
+
+  // Trend chart: pick series by selected metric
+  const trendMap = {
+    revenue: { data: series.rev, sym: '$', type: 'bar', titleEn: 'Revenue', titleZh: '销售金额', meta: 'Revenue with moving average · 销售与均线' },
+    atv:     { data: series.atv, sym: '$', type: 'line', titleEn: 'ATV', titleZh: '客单价', meta: 'Average transaction value with moving average · 客单价与均线' },
+    upt:     { data: series.upt, sym: '',  type: 'line', titleEn: 'UPT', titleZh: '连带率', meta: 'Units per transaction with moving average · 连带率与均线' },
+  };
+  const tm = trendMap[TREND_METRIC];
+  const win = GRAN === 'day' ? 7 : GRAN === 'week' ? 4 : 3;
+  // Update card meta line to reflect selected metric
+  const metaEl = document.getElementById('trendMeta');
+  if (metaEl) metaEl.textContent = tm.meta;
+
+  // Data label toggle: only enabled when bar chart (Revenue) with <=30 bars
+  const labelBtn = document.getElementById('dataLabelToggle');
+  const canLabel = tm.type === 'bar' && agg.length <= 30;
+  if (labelBtn) {
+    labelBtn.disabled = !canLabel;
+    labelBtn.classList.toggle('active', SHOW_DATA_LABELS && canLabel);
+    labelBtn.title = tm.type !== 'bar'
+      ? 'Labels available for Revenue bars only · 仅销售柱状图可用'
+      : (agg.length > 30 ? `Too many bars (${agg.length}) · 柱子过多，需 ≤30 根` : 'Show value labels on bars · 显示柱子数值');
+  }
+
+  renderStoreProfile();
+  renderSalesChart(labels, tm.data, movingAvg(tm.data, win), tm, agg, SHOW_DATA_LABELS && canLabel); renderWeekday(); renderCompareChart(); renderRanking();
+}
+
+function setPill(id, cur, prior) { const el = document.getElementById(id); if (!prior || prior === 0) { el.className = 'pill neut'; el.textContent = 'No Prior · 无对比'; return; } const pct = (cur - prior) / prior * 100; const sign = pct >= 0 ? '+' : ''; el.className = 'pill ' + (pct >= 0 ? 'pos' : 'neg'); el.textContent = `${sign}${pct.toFixed(1)}% YoY`; }
+
+/* ===================================================================
+   STORE PROFILE — basic store info cards (adapts to single / all view)
+=================================================================== */
+function renderStoreProfile() {
+  const rows = filteredRows();
+  const setVal = (id, val, meta) => {
+    document.getElementById(id).innerHTML = val;
+    if (meta !== undefined) document.getElementById(id + 'Meta').innerHTML = meta;
+  };
+  const setMode = (id, cls) => { document.getElementById(id).className = 'profile-value' + (cls ? ' ' + cls : ''); };
+
+  if (!rows.length) {
+    ['profCity','profArea','profType','profFormat','profOpen','profReno'].forEach(id => { setVal(id, '—', ''); setMode(id, ''); });
+    return;
+  }
+
+  // Build a representative per-store map (latest snapshot per store from filtered rows)
+  const storeRef = new Map();
+  rows.forEach(r => { if (!storeRef.has(r.Store)) storeRef.set(r.Store, r); });
+  const refs = Array.from(storeRef.values());
+  const today = new Date();
+  const monthsAgo = (d) => d ? ((today - d) / (1000*60*60*24*30.4375)) : null;
+
+  if (SELECTED_STORES.length !== 1) {
+    // ===== Aggregate view =====
+    const cities = new Set(refs.map(r => r.City).filter(Boolean));
+    const states = new Set(refs.map(r => r.State).filter(Boolean));
+    const totalArea = refs.reduce((s,r) => s + (r.Area || 0), 0);
+    const avgArea = refs.length ? totalArea / refs.length : 0;
+
+    // Type breakdown
+    const typeCount = {};
+    refs.forEach(r => { const t = r.SameStoreType || 'Unknown'; typeCount[t] = (typeCount[t]||0)+1; });
+    const topTypes = Object.entries(typeCount).sort((a,b)=>b[1]-a[1]);
+
+    // Format breakdown
+    const fmtCount = {};
+    refs.forEach(r => { const f = r.StoreFormat || 'Unknown'; fmtCount[f] = (fmtCount[f]||0)+1; });
+    const topFmts = Object.entries(fmtCount).sort((a,b)=>b[1]-a[1]);
+
+    // Opening dates
+    const opens = refs.map(r => r.OpeningDate).filter(Boolean).sort((a,b) => a-b);
+
+    // Reno dates
+    const renos = refs.map(r => r.RenoEnd).filter(Boolean).sort((a,b) => a-b);
+
+    setVal('profCity',
+      `${cities.size} <span class="profile-unit">cities · 城</span>`,
+      states.size ? `${states.size} states · 州 · ${refs.length} stores · 家` : `${refs.length} stores · 家`);
+    setMode('profCity', '');
+
+    setVal('profArea',
+      `${fmtInt(totalArea)} <span class="profile-unit">m²</span>`,
+      avgArea ? `avg <strong style="color:var(--ink-2);">${fmtInt(avgArea)} m²</strong> per store · 店均` : '');
+    setMode('profArea', '');
+
+    // Badge piles capped at 3 + overflow counter, all neutral style
+    const badgePile = (entries) => {
+      const shown = entries.slice(0, 3).map(([k,c]) => `<span class="profile-badge">${escapeHtml(k)} ${c}</span>`);
+      if (entries.length > 3) shown.push(`<span class="profile-badge">+${entries.length - 3}</span>`);
+      return shown.join('');
+    };
+    setVal('profType', topTypes.length ? badgePile(topTypes) : '—', `${refs.length} stores total · 共 ${refs.length} 家`);
+    setMode('profType', 'is-badges');
+
+    setVal('profFormat', topFmts.length ? badgePile(topFmts) : '—', `${topFmts.length} tiers · ${topFmts.length} 档`);
+    setMode('profFormat', 'is-badges');
+
+    if (opens.length) {
+      setVal('profOpen',
+        `${isoDay(opens[0])} <span class="profile-unit">earliest · 最早</span>`,
+        `Latest · 最新 ${isoDay(opens[opens.length-1])} · ${((opens[opens.length-1] - opens[0])/(1000*60*60*24*365.25)).toFixed(1)} yrs`);
+    } else {
+      setVal('profOpen', '—', '');
+    }
+    setMode('profOpen', '');
+
+    if (renos.length) {
+      const monthsLast = monthsAgo(renos[renos.length-1]);
+      setVal('profReno',
+        `${renos.length} <span class="profile-unit">stores renovated · 家改造</span>`,
+        `Latest · 最近 ${isoDay(renos[renos.length-1])} · ${monthsLast.toFixed(1)} mo ago · 月前`);
+    } else {
+      setVal('profReno', '—', 'No renovations in dataset · 数据内无改造记录');
+    }
+    setMode('profReno', '');
+
+  } else {
+    // ===== Single store view — text values at 19px (is-text), numbers/dates at 26px =====
+    const ref = refs[0];
+    setVal('profCity',
+      escapeHtml(ref.City || '—'),
+      ref.State || '');
+    setMode('profCity', 'is-text');
+
+    setVal('profArea',
+      ref.Area ? `${fmtInt(ref.Area)} <span class="profile-unit">m²</span>` : '—',
+      ref.Area ? 'Floor space · 销售面积' : '');
+    setMode('profArea', '');
+
+    setVal('profType',
+      ref.SameStoreType ? escapeHtml(ref.SameStoreType) : '—',
+      ref.StoreNature || '');
+    setMode('profType', 'is-text');
+
+    setVal('profFormat',
+      ref.StoreFormat ? escapeHtml(ref.StoreFormat) : '—',
+      'Terminal tier · 终端等级');
+    setMode('profFormat', 'is-text');
+
+    if (ref.OpeningDate) {
+      const m = monthsAgo(ref.OpeningDate);
+      const years = m / 12;
+      const ageStr = years >= 1 ? `${years.toFixed(1)} yrs ago · 年前` : `${m.toFixed(1)} months ago · 月前`;
+      setVal('profOpen', isoDay(ref.OpeningDate), ageStr);
+    } else {
+      setVal('profOpen', '—', '');
+    }
+    setMode('profOpen', '');
+
+    if (ref.RenoEnd) {
+      const m = monthsAgo(ref.RenoEnd);
+      setVal('profReno', isoDay(ref.RenoEnd), `${m.toFixed(1)} months ago · 月前`);
+    } else {
+      setVal('profReno', '<span style="color:var(--muted);">—</span>', 'No renovation · 暂无改造');
+    }
+    setMode('profReno', '');
+  }
+}
+
+function movingAvg(arr, win = 7) { return arr.map((_, i, a) => { const sl = a.slice(Math.max(0, i - win + 1), i + 1); return sl.reduce((s,v)=>s+v,0) / sl.length; }); }
+function destroy(id) { if (charts[id]) { charts[id].destroy(); delete charts[id]; } }
+
+function renderSalesChart(labels, data, movAvg, tm, agg, showLabels) {
+  tm = tm || { sym: '$', type: 'bar', titleEn: 'Revenue' };
+  destroy('sales');
+  const ctx = document.getElementById('chartSales').getContext('2d');
+  const isBar = tm.type === 'bar';
+  const decimals = tm.sym === '$' && !isBar ? 2 : (tm.sym === '' ? 2 : 0); // ATV $ 2dp, UPT 2dp, Revenue 0dp
+
+  // Weekend coloring — only in Day granularity bar mode (weekend has no meaning for week/month buckets)
+  const isDayBar = isBar && GRAN === 'day' && agg && agg.length;
+  const weekendFlags = isDayBar ? agg.map(o => { const d = o.date.getUTCDay(); return d === 0 || d === 6; }) : null;
+  const barColor = weekendFlags
+    ? weekendFlags.map(w => w ? 'rgba(0,74,153,0.92)' : 'rgba(0,102,204,0.85)')  // weekend deep blue vs weekday blue
+    : 'rgba(0,102,204,0.85)';
+  const barHover = weekendFlags
+    ? weekendFlags.map(w => w ? COLORS.primaryDeep : COLORS.primaryFocus)
+    : COLORS.primaryFocus;
+
+  const primarySet = isBar
+    ? { type: 'bar', label: tm.titleEn, data, backgroundColor: barColor, hoverBackgroundColor: barHover, borderRadius: 4, borderSkipped: false, maxBarThickness: 22, order: 2 }
+    : { type: 'line', label: tm.titleEn, data, borderColor: COLORS.primary, backgroundColor: 'rgba(0,102,204,0.06)', borderWidth: 2, tension: 0.35, pointRadius: 0, pointHoverRadius: 4, pointHoverBackgroundColor: COLORS.primary, pointHoverBorderColor: '#fff', pointHoverBorderWidth: 2, fill: true, order: 2 };
+
+  // Inline data-label plugin (no external dependency)
+  const labelFmt = (v) => tm.sym === '$' ? '$' + abbr(v) : (decimals > 0 ? v.toFixed(decimals) : fmtInt(v));
+  const dataLabelPlugin = {
+    id: 'barDataLabels',
+    afterDatasetsDraw(chart) {
+      if (!showLabels) return;
+      const { ctx } = chart;
+      const meta = chart.getDatasetMeta(0);
+      if (!meta || meta.type !== 'bar') return;
+      ctx.save();
+      ctx.font = '600 10px "SF Pro Text", Inter, system-ui, sans-serif';
+      ctx.fillStyle = COLORS.ink;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'bottom';
+      meta.data.forEach((bar, i) => {
+        const v = data[i];
+        if (v == null) return;
+        ctx.fillText(labelFmt(v), bar.x, bar.y - 4);
+      });
+      ctx.restore();
+    }
+  };
+
+  charts.sales = new Chart(ctx, {
+    data: { labels, datasets: [
+      primarySet,
+      { type: 'line', label: 'Moving avg · 均线', data: movAvg, borderColor: COLORS.ink, borderWidth: 1.5, tension: 0.35, pointRadius: 0, pointHoverRadius: 4, pointHoverBackgroundColor: COLORS.ink, pointHoverBorderColor: '#fff', pointHoverBorderWidth: 2, fill: false, borderDash: isBar ? [] : [2, 3], order: 1 }
+    ] },
+    options: (() => { const o = chartCommonOpts({ ySymbol: tm.sym, decimals }); if (showLabels) { o.layout = { padding: { top: 22 } }; } return o; })(),
+    plugins: [dataLabelPlugin]
+  });
+}
+
+function renderCompareChart() {
+  const rows = dateFilteredRows(); destroy('compare');
+  if (!rows.length || !COMPARE_STORES.length) { const ctx = document.getElementById('chartCompare').getContext('2d'); charts.compare = new Chart(ctx, { type:'line', data: { labels: [], datasets: [] }, options: chartCommonOpts({ ySymbol: '$' }) }); return; }
+  const keyFn = GRAN === 'week' ? weekKey : GRAN === 'month' ? monthKey : isoDay; const allKeys = Array.from(new Set(rows.map(r => keyFn(r.Date)))).sort();
+  const datasets = COMPARE_STORES.map((store, i) => {
+    const byKey = new Map(); rows.filter(r => r.Store === store).forEach(r => { const k = keyFn(r.Date); byKey.set(k, (byKey.get(k) || 0) + r.Revenue); });
+    return { label: store, data: allKeys.map(k => byKey.get(k) || 0), borderColor: COMPARE_PALETTE[i % COMPARE_PALETTE.length], backgroundColor: 'transparent', borderWidth: 1.6, tension: 0.35, pointRadius: 0, pointHoverRadius: 4, pointHoverBackgroundColor: COMPARE_PALETTE[i % COMPARE_PALETTE.length], pointHoverBorderColor: '#fff', pointHoverBorderWidth: 2, fill: false };
+  });
+  const labels = allKeys.map(k => GRAN === 'day' ? k.slice(5) : k); const ctx = document.getElementById('chartCompare').getContext('2d');
+  charts.compare = new Chart(ctx, { type: 'line', data: { labels, datasets }, options: { responsive: true, maintainAspectRatio: false, interaction: { intersect:false, mode:'index' }, plugins: { legend: { display:true, position:'bottom', labels: { boxWidth:8, boxHeight:8, padding:10, font:{size:10.5}, usePointStyle:true, pointStyle:'circle' } }, tooltip: tooltipStyle({ callbacks: { label: c => `${c.dataset.label}: $${fmtMoney(c.parsed.y)}` } }) }, scales: { x: { grid:{display:false}, ticks:{ color:COLORS.muted, maxRotation:0, autoSkipPadding:14, font:{size:10} }, border:{color:COLORS.hair} }, y: { grid:{color:COLORS.hair, drawTicks:false}, ticks:{ color:COLORS.muted, padding:6, font:{size:10}, callback: v=>'$'+abbr(v) }, border:{display:false} } } } });
+}
+
+function renderWeekday() {
+  const rows = filteredRows();
+
+  const clearStats = () => {
+    document.getElementById('hmWeekendLift').textContent = '—';
+    document.getElementById('hmWeekendSub').textContent = 'Sat-Sun vs Mon-Fri · 周末较工作日';
+    const wkndEl = document.getElementById('hmWkndVal');
+    const wkdayEl = document.getElementById('hmWkdayVal');
+    if (wkndEl)  wkndEl.textContent = '—';
+    if (wkdayEl) wkdayEl.textContent = '—';
+    document.getElementById('weekdayBars').innerHTML = '';
+    const wdEl = document.getElementById('wkSplitWeekday');
+    const weEl = document.getElementById('wkSplitWeekend');
+    if (wdEl) wdEl.style.width = '0%';
+    if (weEl) weEl.style.width = '0%';
+    const wePctEl = document.getElementById('wkSplitWeekendPct');
+    if (wePctEl) wePctEl.textContent = '—';
+  };
+
+  if (!rows.length) { clearStats(); return; }
+
+  // ----- Aggregate by day, then by day-of-week -----
+  const byDate = new Map();
+  rows.forEach(r => { const k = isoDay(r.Date); byDate.set(k, (byDate.get(k) || 0) + r.Revenue); });
+
+  const dowSum = [0,0,0,0,0,0,0];
+  const dowCnt = [0,0,0,0,0,0,0];
+  byDate.forEach((v, k) => {
+    const d = parseInputDate(k);
+    const dow = (d.getUTCDay() + 6) % 7;  // Mon=0..Sun=6
+    dowSum[dow] += v;
+    dowCnt[dow] += 1;
+  });
+  const dowAvg = dowSum.map((s, i) => dowCnt[i] ? s / dowCnt[i] : 0);
+  const maxDow = Math.max(...dowAvg);
+
+  const dayLabels = [
+    { en:'Mon', zh:'一', weekend:false },
+    { en:'Tue', zh:'二', weekend:false },
+    { en:'Wed', zh:'三', weekend:false },
+    { en:'Thu', zh:'四', weekend:false },
+    { en:'Fri', zh:'五', weekend:false },
+    { en:'Sat', zh:'六', weekend:true  },
+    { en:'Sun', zh:'日', weekend:true  },
+  ];
+
+  const wkBars = document.getElementById('weekdayBars');
+  wkBars.innerHTML = '';
+  dayLabels.forEach((lbl, i) => {
+    const avg = dowAvg[i];
+    const w = maxDow ? (avg / maxDow * 100) : 0;
+    const row = document.createElement('div');
+    row.className = 'wk-row' + (lbl.weekend ? ' weekend' : '');
+    row.innerHTML = `
+      <span class="wk-day">${lbl.en} · ${lbl.zh}</span>
+      <div class="wk-bar-wrap"><div class="wk-bar-fill" data-w="${w.toFixed(2)}"></div></div>
+      <span class="wk-val">${avg ? '$'+fmtMoney(avg) : '—'}</span>
+    `;
+    wkBars.appendChild(row);
+  });
+  requestAnimationFrame(() => {
+    wkBars.querySelectorAll('.wk-bar-fill').forEach((el, idx) => {
+      setTimeout(() => { el.style.width = el.dataset.w + '%'; }, idx * 50);
+    });
+  });
+
+  // ----- Weekend lift -----
+  const weekdayAvg = (dowAvg.slice(0,5).reduce((s,v)=>s+v, 0)) / 5;
+  const weekendAvg = (dowAvg.slice(5,7).reduce((s,v)=>s+v, 0)) / 2;
+  if (weekdayAvg > 0) {
+    const lift = (weekendAvg / weekdayAvg - 1) * 100;
+    const sign = lift >= 0 ? '+' : '';
+    const liftEl = document.getElementById('hmWeekendLift');
+    liftEl.textContent = `${sign}${lift.toFixed(1)}%`;
+    liftEl.style.color = lift >= 0 ? 'var(--primary)' : 'var(--neg-text)';
+    document.getElementById('hmWkndVal').textContent  = `$${fmtMoney(weekendAvg)}`;
+    document.getElementById('hmWkdayVal').textContent = `$${fmtMoney(weekdayAvg)}`;
+    document.getElementById('hmWeekendSub').textContent = `Sat-Sun vs Mon-Fri · 周末较工作日`;
+  }
+
+  // ----- Split bar: Mon-Fri vs Sat-Sun share of total revenue -----
+  const weekdayTotal = dowSum.slice(0,5).reduce((s,v)=>s+v, 0);
+  const weekendTotal = dowSum.slice(5,7).reduce((s,v)=>s+v, 0);
+  const grand = weekdayTotal + weekendTotal;
+  const wdEl = document.getElementById('wkSplitWeekday');
+  const weEl = document.getElementById('wkSplitWeekend');
+  const wePctEl = document.getElementById('wkSplitWeekendPct');
+  if (grand > 0 && wdEl && weEl) {
+    const wdPct = weekdayTotal / grand * 100;
+    const wePct = weekendTotal / grand * 100;
+    requestAnimationFrame(() => {
+      wdEl.style.width = wdPct.toFixed(1) + '%';
+      weEl.style.width = wePct.toFixed(1) + '%';
+    });
+    if (wePctEl) wePctEl.textContent = wePct.toFixed(0) + '%';
+  } else if (wdEl && weEl) {
+    wdEl.style.width = '0%'; weEl.style.width = '0%';
+    if (wePctEl) wePctEl.textContent = '—';
+  }
+}
+
+function renderRanking() {
+  const rows = dateFilteredRows(); const byStore = new Map();
+  rows.forEach(r => { if (!byStore.has(r.Store)) byStore.set(r.Store, { Store: r.Store, StoreCode: r.StoreCode, City: r.City, Area: 0, Revenue: 0, Transactions: 0, Items: 0, }); const o = byStore.get(r.Store); o.Revenue += r.Revenue; o.Transactions += r.Transactions; o.Items += r.Items; if (r.Area > o.Area) o.Area = r.Area; });
+  const list = Array.from(byStore.values()).filter(o => o.Revenue > 0).map(o => ({ ...o, ATV: o.Transactions ? o.Revenue / o.Transactions : 0, IPT: o.Transactions ? o.Items / o.Transactions : 0, Density: o.Area ? o.Revenue / o.Area : 0, }));
+  // ----- Ranking summary strip (top3 / median / bottom10) -----
+  const setSum = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  if (!list.length) {
+    document.getElementById('rankingList').innerHTML = '';
+    document.getElementById('rankingMeta').textContent = '';
+    ['rsumTop3','rsumMedian','rsumBot10'].forEach(id => setSum(id, '—'));
+    ['rsumTop3Sub','rsumMedianSub','rsumBot10Sub'].forEach(id => setSum(id, '—'));
+    return;
+  }
+  const metricKey = { revenue:'Revenue', atv:'ATV', ipt:'IPT', density:'Density' }[RANK_METRIC]; const sorted = list.slice().sort((a,b) => b[metricKey] - a[metricKey]); const isShare = (RANK_METRIC === 'revenue'); const portfolioTotal = list.reduce((s,o) => s + o[metricKey], 0); const portfolioAvg = list.length ? portfolioTotal / list.length : 0; const top = sorted.slice(0, 10); const maxVal = top[0] ? top[0][metricKey] : 1;
+
+  // Summary strip computations (always against current metric)
+  const N = sorted.length;
+  const top3Sum = sorted.slice(0, Math.min(3, N)).reduce((s,o) => s + o[metricKey], 0);
+  const bot10Count = Math.min(10, N);
+  const bot10Sum = sorted.slice(-bot10Count).reduce((s,o) => s + o[metricKey], 0);
+  const medianVal = N ? sorted[Math.floor((N - 1) / 2)][metricKey] : 0;
+  const medianRank = N ? Math.floor((N - 1) / 2) + 1 : 0;
+  const unitMap = { revenue: '$', density: '$', atv: '$', ipt: '' };
+  const unit = unitMap[RANK_METRIC];
+  const top3Pct = portfolioTotal ? (top3Sum / portfolioTotal * 100).toFixed(1) + '%' : '—';
+  const bot10Pct = portfolioTotal ? (bot10Sum / portfolioTotal * 100).toFixed(1) + '%' : '—';
+  const isRevenue = RANK_METRIC === 'revenue';
+  const ratioFmt = { density: fmtMoney2, atv: fmtMoney2, ipt: fmtNum2 }[RANK_METRIC];
+  setSum('rsumTop3', top3Pct);
+  setSum('rsumTop3Sub', isRevenue
+    ? `${unit}${fmtMoney(top3Sum)} of ${unit}${fmtMoney(portfolioTotal)}`
+    : `top-3 avg ${unit}${ratioFmt(top3Sum / Math.min(3, N))}`);
+  const medianFmt = { revenue: fmtMoney, density: fmtMoney2, atv: fmtMoney2, ipt: fmtNum2 }[RANK_METRIC];
+  setSum('rsumMedian', medianFmt(medianVal));
+  setSum('rsumMedianSub', `${medianRank}${ordinal(medianRank)} of ${N}`);
+  setSum('rsumBot10', bot10Pct);
+  setSum('rsumBot10Sub', isRevenue
+    ? `${unit}${fmtMoney(bot10Sum)} · last ${bot10Count}`
+    : `last-${bot10Count} avg ${unit}${ratioFmt(bot10Sum / bot10Count)}`);
+  // Show $ unit only for non-revenue metrics where median is currency
+  const medianUnitEl = document.querySelector('#rsumMedian')?.previousElementSibling;
+  if (medianUnitEl && medianUnitEl.classList.contains('rsum-unit')) {
+    medianUnitEl.textContent = unit || '';
+  }
+
+  const colMap = { revenue: ['Revenue · 销售', '% Share · 占比'], density: ['Sales/m² · 坪效', 'vs Avg · 较均'], atv: ['ATV · 客单价', 'vs Avg · 较均'], ipt: ['UPT · 连带率', 'vs Avg · 较均'], }; document.getElementById('rankColValue').textContent = colMap[RANK_METRIC][0]; document.getElementById('rankColPct').textContent = colMap[RANK_METRIC][1]; document.getElementById('rankingMeta').textContent = `${list.length} stores · Total $${fmtMoney(list.reduce((s,o)=>s+o.Revenue, 0))}`;
+  const ul = document.getElementById('rankingList'); ul.innerHTML = '';
+  top.forEach((o, i) => {
+    const widthPct = (o[metricKey] / maxVal) * 100; const valDisplay = formatMetricValue(o[metricKey], RANK_METRIC); let pctDisplay, pctClass = '';
+    if (isShare) { pctDisplay = portfolioTotal ? `${((o[metricKey]/portfolioTotal)*100).toFixed(1)}%` : '—'; } else { const delta = portfolioAvg ? (o[metricKey]/portfolioAvg - 1) * 100 : 0; pctDisplay = portfolioAvg ? `${delta >= 0 ? '+' : ''}${delta.toFixed(0)}%` : '—'; pctClass = delta >= 0 ? 'pos' : 'neg'; }
+    const rank = i + 1; const isCurrent = (SELECTED_STORES.length === 1 && SELECTED_STORES[0] === o.Store); const isTop3 = rank <= 3; const row = document.createElement('div'); row.className = 'rank-row' + (isCurrent ? ' current' : '') + (isTop3 ? ' top3' : '');
+    row.innerHTML = `<span class="rank-num">${String(rank).padStart(2,'0')}</span><div class="rank-name-cell"><div class="rank-name">${escapeHtml(o.Store)}</div><span class="rank-city">${escapeHtml([o.StoreCode, o.City].filter(Boolean).join(' · '))}</span></div><div class="rank-bar-wrap"><div class="rank-bar-fill" data-w="${widthPct.toFixed(2)}"></div></div><span class="rank-val">${valDisplay}</span><span class="rank-pct ${pctClass}">${pctDisplay}</span>`;
+    row.addEventListener('click', () => { SELECTED_STORES = [o.Store]; syncFilterUI(); render(); writeUrlState(); }); ul.appendChild(row);
+  });
+  requestAnimationFrame(() => { ul.querySelectorAll('.rank-bar-fill').forEach((el, idx) => { setTimeout(() => { el.style.width = el.dataset.w + '%'; }, idx * 40); }); });
+}
+function ordinal(n) { const s = ['th','st','nd','rd']; const v = n % 100; return s[(v-20)%10] || s[v] || s[0]; }
+function formatMetricValue(v, metric) { if (metric === 'revenue') return '$' + fmtMoney(v); if (metric === 'atv') return '$' + fmtMoney2(v); if (metric === 'ipt') return fmtNum2(v); if (metric === 'density') return '$' + fmtMoney2(v); return v; }
+
+function chartCommonOpts({ ySymbol, decimals = 0 } = {}) {
+  const fmtVal = (v) => {
+    if (ySymbol === '$') return decimals > 0 ? '$' + v.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals }) : '$' + fmtMoney(v);
+    return decimals > 0 ? v.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals }) : fmtInt(v);
+  };
+  const fmtAxis = (v) => ySymbol === '$' ? (decimals > 0 ? '$' + (+v).toFixed(decimals) : '$' + abbr(v)) : (decimals > 0 ? (+v).toFixed(decimals) : abbr(v));
+  return { responsive: true, maintainAspectRatio: false, interaction: { intersect: false, mode: 'index' }, plugins: { legend: { display: false }, tooltip: tooltipStyle({ callbacks: { label: (c) => { const v = c.parsed.y; const lbl = c.dataset.label || ''; return `${lbl}: ${fmtVal(v)}`; } } }) }, scales: { x: { grid: { display:false }, ticks: { color: COLORS.muted, maxRotation: 0, autoSkipPadding: 14, font: {size: 10} }, border: { color: COLORS.hair } }, y: { grid: { color: COLORS.hair, drawTicks:false }, ticks: { color: COLORS.muted, padding: 6, font: {size: 10}, callback: fmtAxis }, border: { display:false } } } };
+}
+function tooltipStyle(extra = {}) { return { backgroundColor: '#1d1d1f', titleColor: '#ffffff', bodyColor: '#cccccc', titleFont: { weight: '600', size: 12 }, bodyFont: { size: 11 }, padding: 12, cornerRadius: 8, displayColors: true, boxWidth: 6, boxHeight: 6, boxPadding: 4, borderColor: 'transparent', borderWidth: 0, ...extra }; }
+function abbr(n) { const abs = Math.abs(n); if (abs >= 1e9) return (n/1e9).toFixed(1) + 'B'; if (abs >= 1e6) return (n/1e6).toFixed(1) + 'M'; if (abs >= 1e3) return (n/1e3).toFixed(1) + 'K'; return Math.round(n).toString(); }
+
+/* ===================================================================
+   EVENT LISTENERS
+=================================================================== */
+
+// Accordion Filters toggle
+const fSummary = document.getElementById('filterSummary');
+const fControls = document.getElementById('filterControls');
+fSummary.addEventListener('click', () => { fSummary.style.display = 'none'; fControls.style.display = 'block'; });
+document.getElementById('btnCloseFilter').addEventListener('click', () => { fControls.style.display = 'none'; fSummary.style.display = 'flex'; });
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && fControls.style.display === 'block') {
+    // Only collapse if no combobox is currently open
+    if (!document.querySelector('.combo.open')) {
+      fControls.style.display = 'none';
+      fSummary.style.display = 'flex';
+    }
+  }
+});
+
+const fi = document.getElementById('fileInput'); const uploadLabel = document.querySelector('label[for="fileInput"]');
+fi.addEventListener('change', (e) => { const f = e.target.files[0]; if (f) handleFile(f); });
+['dragover'].forEach(ev => uploadLabel.addEventListener(ev, e => { e.preventDefault(); }));
+
+document.getElementById('demoBtn').addEventListener('click', () => ingestRows(generateDemo(), 'demo'));
+document.getElementById('shareBtn').addEventListener('click', async () => { try { await navigator.clipboard.writeText(location.href); const b = document.getElementById('shareBtn'); const orig = b.innerHTML; b.innerHTML = '<span style="color:var(--primary);">✓ Copied</span>'; setTimeout(() => b.innerHTML = orig, 1400); } catch { prompt('Copy link:', location.href); } });
+
+document.getElementById('dateSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (b) applyPreset(b.dataset.preset); });
+['dateFrom','dateTo'].forEach(id => { document.getElementById(id).addEventListener('change', () => { const f = parseInputDate(document.getElementById('dateFrom').value); const t = parseInputDate(document.getElementById('dateTo').value); if (f) DATE_FROM = f; if (t) DATE_TO = t; if (DATE_FROM && DATE_TO && DATE_FROM > DATE_TO) [DATE_FROM, DATE_TO] = [DATE_TO, DATE_FROM]; CURRENT_PRESET = 'custom'; syncFilterUI(); render(); writeUrlState(); }); });
+document.getElementById('resetFilters').addEventListener('click', () => { SELECTED_STORES = []; SELECTED_TYPES = []; RANK_METRIC = 'revenue'; GRAN = 'day'; TREND_METRIC = 'revenue'; SHOW_DATA_LABELS = false; syncSortUI(); syncGranUI(); syncTrendMetricUI(); buildCompareChips(); applyPreset('all'); });
+document.getElementById('granSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { GRAN = b.dataset.gran; syncGranUI(); render(); writeUrlState(); } });
+document.getElementById('trendMetricSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { TREND_METRIC = b.dataset.metric; syncTrendMetricUI(); render(); writeUrlState(); } });
+document.getElementById('dataLabelToggle').addEventListener('click', () => { if (document.getElementById('dataLabelToggle').disabled) return; SHOW_DATA_LABELS = !SHOW_DATA_LABELS; render(); writeUrlState(); });
+document.getElementById('rankSortSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { RANK_METRIC = b.dataset.sort; syncSortUI(); renderRanking(); writeUrlState(); } });
+document.getElementById('storeTrigger').addEventListener('click', toggleCombo);
+document.getElementById('typeTrigger').addEventListener('click', toggleTypeCombo);
+document.getElementById('storeSearch').addEventListener('input', buildComboList);
+document.getElementById('chipSearch').addEventListener('input', buildCompareChips);
+document.getElementById('storeSearch').addEventListener('keydown', e => { if (e.key === 'Escape') closeCombo(); if (e.key === 'Enter') { const first = document.querySelector('.combo-option'); if (first) first.click(); } });
+document.addEventListener('click', e => { if (!document.getElementById('storeCombo').contains(e.target)) closeCombo(); if (!document.getElementById('typeCombo').contains(e.target)) closeTypeCombo(); });
+
+function generateDemo() {
+  const stores = [
+    { name: 'Westfield Carousel',  code:'AU76', area: 320, city: 'Perth',     state:'WA',  opened: '2023-11-15', t:240, atv: 18.5, yoyFactor: 0.85, type:'同店',        format:'Flagship', renoEnd: '2025-07-05', nature:'Corporate' },
+    { name: 'Westpoint Blacktown', code:'AU63', area: 285, city: 'Sydney',    state:'NSW', opened: '2024-08-02', t:195, atv: 17.2, yoyFactor: 0.92, type:'25改造店',    format:'Regular',  renoEnd: '2025-09-12', nature:'Corporate' },
+    { name: 'Bayside Frankston',   code:'AU84', area: 240, city: 'Melbourne', state:'VIC', opened: '2025-03-20', t:160, atv: 16.8, yoyFactor: null, type:'25新开店',    format:'Regular',  renoEnd: null,         nature:'Corporate' },
+    { name: 'Forrest Chase Perth', code:'AUB1', area: 195, city: 'Perth',     state:'WA',  opened: '2024-12-05', t:175, atv: 19.3, yoyFactor: null, type:'25新开店',    format:'IP land',  renoEnd: null,         nature:'Corporate' },
+    { name: 'Highpoint',           code:'AU67', area: 410, city: 'Melbourne', state:'VIC', opened: '2022-06-10', t:305, atv: 17.9, yoyFactor: 0.88, type:'收购老店',    format:'Flagship', renoEnd: '2024-05-22', nature:'Corporate' },
+    { name: 'Penrith Plaza',       code:'AU58', area: 265, city: 'Sydney',    state:'NSW', opened: '2024-04-22', t:170, atv: 16.4, yoyFactor: 0.95, type:'同店',        format:'Regular',  renoEnd: null,         nature:'Franchise' },
+    { name: 'Miniso George St',    code:'AU42', area: 175, city: 'Sydney',    state:'NSW', opened: '2025-01-18', t:210, atv: 20.1, yoyFactor: null, type:'25新开店',    format:'Flagship', renoEnd: null,         nature:'Corporate' },
+    { name: 'Erina Fair',          code:'AU96', area: 232, city: 'Central Coast', state:'NSW', opened: '2025-09-30', t:145, atv: 16.0, yoyFactor: null, type:'25新开店', format:'Regular',  renoEnd: null,         nature:'Franchise' },
+    { name: 'Pacific Werribee',    code:'AU68', area: 240, city: 'Melbourne', state:'VIC', opened: '2025-04-12', t:175, atv: 17.5, yoyFactor: null, type:'25新开店',    format:'Regular',  renoEnd: null,         nature:'Corporate' },
+    { name: 'Castle Towers',       code:'AU59', area: 150, city: 'Sydney',    state:'NSW', opened: '2024-09-01', t:130, atv: 16.7, yoyFactor: 0.90, type:'同店',        format:'Regular',  renoEnd: '2025-03-18', nature:'Franchise' },
+  ];
+  const rows = []; const start = new Date(Date.UTC(2026, 2, 1)); const days = 95;
+  stores.forEach(s => {
+    for (let i = 0; i < days; i++) {
+      const d = new Date(start); d.setUTCDate(start.getUTCDate() + i); const dow = d.getUTCDay(); const weekend = dow === 0 || dow === 6;
+      const factor = (weekend ? 1.35 : 1.0) * (0.85 + Math.random() * 0.30); const transactions = Math.round(s.t * factor);
+      const ipt = 2.2 + Math.random() * 0.8; const items = Math.round(transactions * ipt); const atv = s.atv * (0.92 + Math.random() * 0.16);
+      const revenue = +(transactions * atv).toFixed(2);
+      let revPrior = 0, tPrior = 0, iPrior = 0, areaPrior = 0;
+      if (s.yoyFactor !== null) { const yoyJitter = 0.92 + Math.random() * 0.16; revPrior = +(revenue * s.yoyFactor * yoyJitter).toFixed(2); tPrior = Math.round(transactions * s.yoyFactor * yoyJitter); iPrior = Math.round(items * s.yoyFactor * yoyJitter); areaPrior = s.area; }
+      rows.push({
+        '日历日期': isoDay(d),
+        '店铺名称': s.name, '店铺代码': s.code, '城市': s.city, '州': s.state,
+        '销售面积本期': s.area, '销售面积同期': areaPrior,
+        '首次开业时间': s.opened,
+        '销售金额本期': revenue, '销售金额同期': revPrior,
+        '客单量本期': transactions, '客单量同期': tPrior,
+        '销售数量本期': items, '销售数量同期': iPrior,
+        '有效流水天数': 1,
+        '同店类型': s.type, '终端形象等级': s.format, '店铺性质': s.nature,
+        '最新改造结束时间': s.renoEnd || null,
+      });
+    }
+  }); return rows;
+}
+
+/* ===================================================================
+   LOCAL PERSISTENCE — IndexedDB (no size limit, fully local)
+   localStorage was ~5 MB cap and silently failed on 13k-row files.
+   IndexedDB handles hundreds of MB with no issues.
+=================================================================== */
+const IDB_NAME   = 'retail-dashboard';
+const IDB_STORE  = 'cache';
+const IDB_KEY    = 'dataset-v1';
+const IDB_SCHEMA = 1;
+
+/* Open (or create) the database — returns a Promise<IDBDatabase> */
+function openIDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(IDB_NAME, 1);
+    req.onupgradeneeded = (e) => {
+      e.target.result.createObjectStore(IDB_STORE);
+    };
+    req.onsuccess = (e) => resolve(e.target.result);
+    req.onerror   = (e) => reject(e.target.error);
+  });
+}
+
+/* Serialize RAW rows: convert Date → ISO string to avoid structured-clone issues */
+function serializeRows(rows) {
+  return rows.map(r => ({
+    ...r,
+    Date:        r.Date        ? r.Date.toISOString().slice(0,10)        : null,
+    OpeningDate: r.OpeningDate ? r.OpeningDate.toISOString().slice(0,10) : null,
+    RenoEnd:     r.RenoEnd     ? r.RenoEnd.toISOString().slice(0,10)     : null,
+  }));
+}
+
+/* Restore Date objects after reading back from IDB */
+function deserializeRows(rows) {
+  rows.forEach(r => {
+    if (r.Date)        r.Date        = new Date(r.Date);
+    if (r.OpeningDate) r.OpeningDate = new Date(r.OpeningDate);
+    if (r.RenoEnd)     r.RenoEnd     = new Date(r.RenoEnd);
+  });
+  return rows;
+}
+
+async function saveToIDB(fileName) {
+  if (!RAW.length) return;
+  try {
+    const db = await openIDB();
+    const payload = {
+      schema:    IDB_SCHEMA,
+      fileName:  fileName || 'data',
+      timestamp: Date.now(),
+      rowCount:  RAW.length,
+      raw:       serializeRows(RAW),
+    };
+    await new Promise((resolve, reject) => {
+      const tx  = db.transaction(IDB_STORE, 'readwrite');
+      const req = tx.objectStore(IDB_STORE).put(payload, IDB_KEY);
+      req.onsuccess = resolve;
+      req.onerror   = (e) => reject(e.target.error);
+    });
+    db.close();
+    showCacheIndicator(fileName, payload.timestamp, RAW.length);
+  } catch (e) {
+    console.warn('[IDB] save failed:', e);
+    showCacheWarning('Cache save failed · 缓存保存失败');
+  }
+}
+
+async function loadFromIDB() {
+  try {
+    const db = await openIDB();
+    const payload = await new Promise((resolve, reject) => {
+      const tx  = db.transaction(IDB_STORE, 'readonly');
+      const req = tx.objectStore(IDB_STORE).get(IDB_KEY);
+      req.onsuccess = (e) => resolve(e.target.result);
+      req.onerror   = (e) => reject(e.target.error);
+    });
+    db.close();
+    if (!payload || payload.schema !== IDB_SCHEMA || !Array.isArray(payload.raw)) return null;
+    payload.raw = deserializeRows(payload.raw);
+    return payload;
+  } catch (e) {
+    console.warn('[IDB] load failed:', e);
+    return null;
+  }
+}
+
+async function clearIDB() {
+  try {
+    const db = await openIDB();
+    await new Promise((resolve, reject) => {
+      const tx  = db.transaction(IDB_STORE, 'readwrite');
+      const req = tx.objectStore(IDB_STORE).delete(IDB_KEY);
+      req.onsuccess = resolve;
+      req.onerror   = (e) => reject(e.target.error);
+    });
+    db.close();
+  } catch (e) { console.warn('[IDB] clear failed:', e); }
+}
+
+/* ---- UI helpers ---- */
+function timeAgo(ts) {
+  const diff = Math.max(0, Date.now() - ts);
+  const min = Math.floor(diff / 60000);
+  const hr  = Math.floor(min / 60);
+  const day = Math.floor(hr / 24);
+  if (min < 1)   return 'just now · 刚刚';
+  if (min < 60)  return `${min}m ago · 分前`;
+  if (hr < 24)   return `${hr}h ago · 小时前`;
+  if (day < 30)  return `${day}d ago · 天前`;
+  return new Date(ts).toISOString().slice(0,10);
+}
+
+function showCacheIndicator(fileName, timestamp, rowCount) {
+  const el = document.getElementById('cacheStatus');
+  el.style.background = ''; el.style.color = '';
+  document.getElementById('cacheName').textContent =
+    fileName.length > 24 ? fileName.slice(0,22) + '…' : fileName;
+  document.getElementById('cacheMeta').textContent =
+    `${fmtInt(rowCount)} rows · ${timeAgo(timestamp)}`;
+  el.classList.remove('hidden');
+}
+
+function hideCacheIndicator() {
+  document.getElementById('cacheStatus').classList.add('hidden');
+}
+
+function showCacheWarning(msg) {
+  const el = document.getElementById('cacheStatus');
+  el.classList.remove('hidden');
+  el.style.background = 'var(--neg-bg)';
+  el.style.color = 'var(--neg-text)';
+  document.getElementById('cacheName').textContent = msg;
+  document.getElementById('cacheMeta').textContent = '';
+  setTimeout(() => {
+    el.style.background = ''; el.style.color = '';
+    el.classList.add('hidden');
+  }, 4000);
+}
+
+document.getElementById('clearCacheBtn').addEventListener('click', async (e) => {
+  e.stopPropagation();
+  if (confirm('Clear cached data? · 确定清除本地缓存数据？\n\nThe page will reload and you will need to re-upload your file.\n清除后页面会刷新，需要重新上传数据文件。')) {
+    await clearIDB();
+    location.hash = '';
+    location.reload();
+  }
+});
+
+/* ---- Auto-restore on page load ---- */
+async function attemptAutoLoad() {
+  const cached = await loadFromIDB();
+  if (!cached || !cached.raw || !cached.raw.length) return;
+
+  RAW = cached.raw;
+
+  // Reveal UI (same sequence as ingestRows)
+  document.getElementById('emptyBanner').style.display    = 'none';
+  document.getElementById('filterContainer').style.display = 'block';
+  document.getElementById('profileRow').style.display     = 'grid';
+  document.getElementById('rowMid').style.display         = 'block';
+  document.getElementById('rowBanner').style.display      = 'block';
+  document.getElementById('rowBot').style.display         = 'grid';
+  document.getElementById('shareBtn').classList.remove('hidden');
+
+  initialiseFilters();
+  showCacheIndicator(cached.fileName, cached.timestamp, cached.rowCount);
+}
+
+/* ---- Baked-in data (deployed builds) ----
+   When data-injector.html bakes a dataset into #bakedData, load it through the
+   exact same ingestRows() pipeline an upload uses. Takes precedence over the
+   IndexedDB cache so a freshly-deployed dataset always wins for viewers. */
+function loadBakedData() {
+  const el = document.getElementById('bakedData');
+  if (!el) return false;
+  let payload;
+  try { payload = JSON.parse(el.textContent || 'null'); }
+  catch (e) { console.warn('[baked] parse failed:', e); return false; }
+  if (!payload || !Array.isArray(payload.rows) || !payload.rows.length) return false;
+  try {
+    ingestRows(payload.rows, payload.fileName || 'data');
+    return true;
+  } catch (e) { console.warn('[baked] ingest failed:', e); return false; }
+}
+
+bindReveal();
+if (!loadBakedData()) attemptAutoLoad();
+</script>
+</body>
+</html>
