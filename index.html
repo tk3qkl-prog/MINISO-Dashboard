@@ -1215,9 +1215,6 @@
 
 </div>
 
-<!-- Baked data slot · 烤入数据槽 — populated by data-injector.html for deployed builds. Leave as null for the blank/upload version. -->
-<script id="bakedData" type="application/json">null</script>
-
 <script>
 /* ===================================================================
    Retail Performance Dashboard
@@ -2283,25 +2280,8 @@ async function attemptAutoLoad() {
   showCacheIndicator(cached.fileName, cached.timestamp, cached.rowCount);
 }
 
-/* ---- Baked-in data (deployed builds) ----
-   When data-injector.html bakes a dataset into #bakedData, load it through the
-   exact same ingestRows() pipeline an upload uses. Takes precedence over the
-   IndexedDB cache so a freshly-deployed dataset always wins for viewers. */
-function loadBakedData() {
-  const el = document.getElementById('bakedData');
-  if (!el) return false;
-  let payload;
-  try { payload = JSON.parse(el.textContent || 'null'); }
-  catch (e) { console.warn('[baked] parse failed:', e); return false; }
-  if (!payload || !Array.isArray(payload.rows) || !payload.rows.length) return false;
-  try {
-    ingestRows(payload.rows, payload.fileName || 'data');
-    return true;
-  } catch (e) { console.warn('[baked] ingest failed:', e); return false; }
-}
-
 bindReveal();
-if (!loadBakedData()) attemptAutoLoad();
+attemptAutoLoad();
 </script>
 </body>
 </html>
