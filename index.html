@@ -604,7 +604,7 @@
   /* Card internals */
   .card-head { display: flex; justify-content: space-between; align-items: baseline; padding: 12px 16px 0 16px; flex-wrap: wrap; gap: 8px; flex-shrink: 0; }
   .card-title { font-family: 'SF Pro Display', 'Inter', system-ui, sans-serif; font-weight: 600; font-size: 16px; letter-spacing: -0.014em; color: var(--ink); }
-  .card-title .zh { color: var(--muted); font-weight: 400; }
+  .card-title .zh { color: var(--muted); font-weight: 400; font-size: 0.88em; }
   .card-meta { font-size: 11.5px; color: var(--muted); font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .card-body { flex: 1; min-height: 0; padding: 8px 14px 14px 14px; display: flex; flex-direction: column; }
   .chart-wrap { position: relative; flex: 1; min-height: 240px; width: 100%; }
@@ -631,6 +631,10 @@
   .label-toggle:disabled { opacity: 0.4; cursor: not-allowed; }
   .label-toggle:disabled:hover { border-color: var(--hairline); color: var(--muted); }
   .chart-wrap canvas { display: block; }
+  .wkl { position: absolute; top: 0; right: 2px; display: flex; gap: 14px; font-size: 11px; color: var(--muted); z-index: 2; pointer-events: none; }
+  .wkl.hidden { display: none; }
+  .wkl span { display: inline-flex; align-items: center; }
+  .wkl .wkl-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; margin-right: 5px; }
 
   /* ===== TYPOGRAPHY SYSTEM — unified eyebrow style across all cards ===== */
   /* Used by: kpi-eyebrow, profile-eyebrow, generic eyebrow */
@@ -663,28 +667,39 @@
     text-overflow: ellipsis;
     letter-spacing: -0.01em;
   }
-  /* ===== Compare chips — Apple pill ===== */
-  .chip-toolbar { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
-  .chip-search { flex: 1; padding: 8px 14px; font-size: 12.5px; border: 1px solid var(--hairline); border-radius: 9999px; background: var(--surface-pearl); color: var(--ink); letter-spacing: -0.01em; }
-  .chip-search:focus { outline: none; background: var(--surface); border-color: var(--primary); }
-  .chip-row { display: flex; flex-wrap: wrap; gap: 5px; max-height: 96px; overflow-y: auto; flex-shrink: 0; padding: 2px 0; }
-  .chip { padding: 5px 12px; font-size: 11.5px; font-weight: 400; border-radius: 9999px; background: var(--surface-pearl); color: var(--ink-2); cursor: pointer; transition: all .15s ease; border: 1px solid var(--hairline); display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; letter-spacing: -0.01em; }
-  .chip:hover { background: var(--surface-2); border-color: var(--hairline-2); color: var(--ink); }
-  .chip.active { color: var(--on-dark); font-weight: 600; background: var(--ink); border-color: var(--ink); }
-  .chip .chip-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--muted-2); flex-shrink: 0; }
-  .chip.active .chip-dot { background: var(--chip-color, var(--primary)); }
+  /* ===== Multi-store comparison selector ===== */
+  .cmp-select { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; flex-shrink: 0; }
+  .cmp-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .cmp-chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 5px 4px 10px; font-size: 12px; border-radius: 9999px; background: var(--surface-pearl); border: 1px solid var(--hairline); color: var(--ink); white-space: nowrap; }
+  .cmp-chip .chip-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--chip-color, var(--primary)); flex-shrink: 0; }
+  .cmp-chip-x { border: none; background: none; color: var(--muted); cursor: pointer; font-size: 15px; line-height: 1; padding: 0 3px; border-radius: 50%; }
+  .cmp-chip-x:hover { color: var(--neg-text); }
+  .cmp-add-wrap { position: relative; }
+  .cmp-add { padding: 5px 12px; font-size: 12px; border-radius: 9999px; background: var(--surface); border: 1px dashed var(--hairline-2); color: var(--primary); cursor: pointer; white-space: nowrap; transition: border-color .15s ease; }
+  .cmp-add:hover { border-color: var(--primary); }
+  .cmp-add:disabled { opacity: 0.4; cursor: not-allowed; }
+  .cmp-popover { position: absolute; top: calc(100% + 6px); left: 0; width: 260px; max-width: 78vw; background: var(--surface); border: 1px solid var(--hairline); border-radius: 12px; box-shadow: 0 12px 32px rgba(0,0,0,0.12); z-index: 30; overflow: hidden; }
+  .cmp-popover[hidden] { display: none; }
+  .cmp-list { max-height: 240px; overflow-y: auto; padding: 4px; }
+  .cmp-opt { display: flex; align-items: center; gap: 8px; padding: 7px 10px; font-size: 12.5px; border-radius: 8px; cursor: pointer; color: var(--ink); }
+  .cmp-opt:hover { background: var(--surface-3); }
+  .cmp-opt.selected { color: var(--primary); font-weight: 600; }
+  .cmp-opt.disabled { opacity: 0.4; cursor: not-allowed; }
+  .cmp-opt-check { width: 12px; flex-shrink: 0; color: var(--primary); }
+  .cmp-opt-name { flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .cmp-opt-meta { color: var(--muted); font-size: 11px; flex-shrink: 0; }
+  .cmp-empty { padding: 12px; text-align: center; color: var(--muted); font-size: 12px; }
 
   /* ===== Ranking — Apple Store list pattern: no hairlines, hover surfaces highlight ===== */
   .rank-list-wrap { flex: 1; overflow-y: auto; min-height: 320px; padding-right: 4px; }
   /* Grid: # | Store | Share-bar (narrow) | Value | % — fixed columns for clean alignment */
-  .rank-head { display: grid; grid-template-columns: 28px minmax(150px, 230px) 1fr 110px 80px; gap: 14px; align-items: center; padding: 0 8px 10px 8px; font-size: 12px; border-bottom: 1px solid var(--hairline); margin: 0 -8px; }
+  .rank-head { display: grid; grid-template-columns: 28px minmax(120px, 1.1fr) minmax(140px, 1.7fr) 116px; gap: 14px; align-items: center; padding: 0 8px 10px 8px; font-size: 12px; border-bottom: 1px solid var(--hairline); margin: 0 -8px; }
   .rank-head .eyebrow { font-size: 10.5px; }
   .rank-head .eyebrow:nth-child(3) { text-align: left; }
-  .rank-head .eyebrow:nth-child(4),
-  .rank-head .eyebrow:nth-child(5) { text-align: right; }
+  .rank-head .eyebrow:nth-child(4) { text-align: right; }
   .rank-row {
     display: grid;
-    grid-template-columns: 28px minmax(150px, 230px) 1fr 110px 80px;
+    grid-template-columns: 28px minmax(120px, 1.1fr) minmax(140px, 1.7fr) 116px;
     gap: 14px;
     align-items: center;
     padding: 8px;
@@ -709,13 +724,17 @@
   .rank-name-cell { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
   .rank-name { font-size: 13px; font-weight: 600; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; letter-spacing: -0.01em; line-height: 1.25; }
   .rank-city { font-size: 11px; color: var(--muted); display: block; letter-spacing: -0.01em; line-height: 1.25; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .rank-bar-wrap { height: 4px; background: var(--surface-2); border-radius: 9999px; overflow: hidden; width: 100%; }
-  .rank-bar-fill { height: 100%; width: 0; background: var(--ink-2); border-radius: 9999px; transition: width .9s cubic-bezier(.2,.7,.2,1); }
-  .rank-row.current .rank-bar-fill { background: var(--primary); }
   .rank-val { font-variant-numeric: tabular-nums; font-size: 13px; font-weight: 600; color: var(--ink); text-align: right; letter-spacing: -0.01em; }
-  .rank-pct { font-variant-numeric: tabular-nums; font-size: 11px; color: var(--muted); text-align: right; letter-spacing: -0.01em; }
-  .rank-pct.pos { color: var(--pos-text); }
-  .rank-pct.neg { color: var(--neg-text); }
+  /* Comparison cell — number-forward: % lead + thin magnitude bar */
+  .rank-cmp { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+  .rank-cmp-top { display: flex; align-items: baseline; gap: 6px; }
+  .rank-cmp-pct { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; color: var(--ink); }
+  .rank-cmp-pct.pos { color: var(--pos-text); }
+  .rank-cmp-pct.neg { color: var(--neg-text); }
+  .rank-cmp-cap { font-size: 10px; color: var(--muted-2); white-space: nowrap; }
+  .rank-cmp-track { height: 3px; background: var(--surface-2); border-radius: 9999px; overflow: hidden; }
+  .rank-cmp-fill { height: 100%; width: 0; background: rgba(0,102,204,0.85); border-radius: 9999px; transition: width .9s cubic-bezier(.2,.7,.2,1); }
+  .rank-row.current .rank-cmp-fill { background: var(--primary); }
 
   .empty-banner { text-align: center; padding: 96px 20px; color: var(--muted); font-size: 15px; letter-spacing: -0.011em; line-height: 1.5; }
   .empty-banner .ico { font-size: 40px; opacity: 0.3; margin-bottom: 16px; }
@@ -813,17 +832,14 @@
     .rsum-cell:first-child { border-right: 1px solid var(--hairline); border-bottom: 1px solid var(--hairline); }
     .rsum-cell:nth-child(2) { border-bottom: 1px solid var(--hairline); }
     .rsum-cell:last-child { grid-column: 1 / -1; }
-    /* Ranking rows: hide the share bar column to keep #/store/value/% readable */
-    .rank-head, .rank-row { grid-template-columns: 26px minmax(0,1fr) 92px 60px; }
-    .rank-head .eyebrow:nth-child(3),
-    .rank-row .rank-bar-wrap { display: none; }
+    /* Ranking rows: drop the bars/captions, keep #/store/%/value readable */
+    .rank-head, .rank-row { grid-template-columns: 26px minmax(0,1fr) 60px 104px; }
+    .rank-row .rank-cmp-track, .rank-row .rank-cmp-cap { display: none; }
     /* Seg controls wrap nicely */
     .seg { flex-wrap: wrap; }
     /* Filter summary: allow wrap */
     #filterSummary { flex-wrap: wrap; gap: 8px; }
     .chart-wrap { min-height: 200px; }
-    /* Compare chips scroll area shorter */
-    .chip-row { max-height: 80px; }
   }
 
   /* ---- Small phone (≤480px) ---- */
@@ -882,15 +898,15 @@
           <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
         </button>
       </div>
-      <label for="fileInput" class="btn-ghost" style="cursor:pointer;">
+      <label for="fileInput" class="btn-ghost" style="cursor:pointer;" title="上传 .xlsx / .csv">
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
           <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
         </svg>
-        Upload · 上传
+        Upload
       </label>
       <input id="fileInput" type="file" accept=".xlsx,.xls,.csv" class="visually-hidden" />
-      <button id="demoBtn" class="btn-link" type="button">Load Demo · 加载示例</button>
+      <button id="demoBtn" class="btn-link" type="button" title="加载示例数据">Load Demo</button>
       <button id="shareBtn" class="btn-ghost hidden" type="button">
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
@@ -913,7 +929,7 @@
         <div class="w-[1px] h-3 bg-[color:var(--hairline)] hidden sm:block"></div>
         <div class="flex items-center gap-2">
           <span class="text-[color:var(--muted)]">Type:</span>
-          <strong id="sumType" class="text-[color:var(--ink)]">All · 全部</strong>
+          <strong id="sumType" class="text-[color:var(--ink)]">All types</strong>
         </div>
         <div class="w-[1px] h-3 bg-[color:var(--hairline)] hidden sm:block"></div>
         <div class="flex items-center gap-2">
@@ -923,7 +939,7 @@
       </div>
       <div class="flex items-center gap-4 flex-shrink-0">
         <span id="filterStatusCompact" class="text-[11.5px] text-[color:var(--muted)] num hidden md:inline-block"></span>
-        <div class="btn-ghost text-[11.5px] px-3 py-1 shadow-none border hair">Change · 修改筛选</div>
+        <div class="btn-ghost text-[11.5px] px-3 py-1 shadow-none border hair" title="修改筛选">Change</div>
       </div>
     </div>
 
@@ -937,7 +953,7 @@
               <svg class="combo-arrow" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
             <div class="combo-panel" id="storePanel" hidden>
-              <input id="storeSearch" type="text" class="combo-search" placeholder="Search Store · 搜索门店…" />
+              <input id="storeSearch" type="text" class="combo-search" placeholder="Search store…" />
               <div class="combo-list" id="storeList"></div>
             </div>
           </div>
@@ -947,7 +963,7 @@
           <div class="eyebrow" style="margin-bottom:5px;">Same-Store Type · 同店类型</div>
           <div class="combo" id="typeCombo">
             <button type="button" class="combo-trigger" id="typeTrigger">
-              <span id="typeTriggerLabel">All Types · 全部</span>
+              <span id="typeTriggerLabel">All types</span>
               <svg class="combo-arrow" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
             </button>
             <div class="combo-panel" id="typePanel" hidden>
@@ -960,12 +976,12 @@
           <div class="eyebrow" style="margin-bottom:5px;">Period · 时间范围</div>
           <div class="flex items-center gap-2 flex-wrap">
             <div class="seg" id="dateSeg">
-              <button type="button" data-preset="7">7D · 7天</button>
-              <button type="button" data-preset="30">30D · 30天</button>
-              <button type="button" data-preset="90">90D · 90天</button>
-              <button type="button" data-preset="mtd">MTD · 月初</button>
-              <button type="button" data-preset="ytd">YTD · 年初</button>
-              <button type="button" data-preset="all" class="active">All · 全部</button>
+              <button type="button" data-preset="7" title="近 7 天">7D</button>
+              <button type="button" data-preset="30" title="近 30 天">30D</button>
+              <button type="button" data-preset="90" title="近 90 天">90D</button>
+              <button type="button" data-preset="mtd" title="本月至今">MTD</button>
+              <button type="button" data-preset="ytd" title="本年至今">YTD</button>
+              <button type="button" data-preset="all" class="active" title="全部">All</button>
             </div>
             <div class="flex items-center gap-2">
                 <input id="dateFrom" type="date" class="border hair rounded-full px-3 py-1.5 text-[12px] num text-[color:var(--ink)] bg-[color:var(--surface-pearl)] focus:outline-none focus:border-[color:var(--primary)] transition" />
@@ -977,8 +993,8 @@
       </div>
 
       <div class="flex justify-between items-center px-4 py-3 bg-[color:var(--surface-2)] border-t hair">
-        <button id="resetFilters" class="btn-link text-[12px]" type="button">Reset Filters · 重置参数</button>
-        <button id="btnCloseFilter" class="btn-ghost" style="" type="button">Apply & Close · 收起面板</button>
+        <button id="resetFilters" class="btn-link text-[12px]" type="button" title="重置参数">Reset Filters</button>
+        <button id="btnCloseFilter" class="btn-ghost" style="" type="button" title="收起面板">Apply & Close</button>
       </div>
     </div>
   </section>
@@ -1069,22 +1085,26 @@
       <div class="card-head card-head-trend">
         <div class="trend-head-text">
           <div class="card-title">Day-to-Day Sales Trend <span class="zh">· 日销售走势</span></div>
-          <div class="card-meta" id="trendMeta" style="margin-top:3px;">Revenue with 7-Day Moving Average · 销售与七日均线</div>
+          <div class="card-meta" id="trendMeta" style="margin-top:3px;">Revenue vs last year · 销售与去年同期</div>
         </div>
         <div class="trend-head-controls">
           <div class="seg" id="trendMetricSeg">
-            <button type="button" data-metric="revenue" class="active">Revenue · 销售</button>
-            <button type="button" data-metric="atv">ATV · 客单价</button>
-            <button type="button" data-metric="upt">UPT · 连带率</button>
+            <button type="button" data-metric="revenue" class="active" title="销售">Revenue</button>
+            <button type="button" data-metric="atv" title="客单价">ATV</button>
+            <button type="button" data-metric="upt" title="连带率">UPT</button>
           </div>
           <div class="seg" id="granSeg">
-            <button type="button" data-gran="day" class="active">Day · 日</button>
-            <button type="button" data-gran="week">Week · 周</button>
-            <button type="button" data-gran="month">Month · 月</button>
+            <button type="button" data-gran="day" class="active" title="日">Day</button>
+            <button type="button" data-gran="week" title="周">Week</button>
+            <button type="button" data-gran="month" title="月">Month</button>
           </div>
-          <button type="button" id="dataLabelToggle" class="label-toggle" title="Show value labels on bars · 显示柱子数值">
+          <button type="button" id="yoyToggle" class="label-toggle" title="去年同期对比（仅月粒度）· Compare with last year, Month view only">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>
+            <span>YoY</span>
+          </button>
+          <button type="button" id="dataLabelToggle" class="label-toggle" title="显示柱子数值 · Show value labels on bars">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 20V10M10 20V4M16 20v-6M22 20H2"/></svg>
-            <span>Labels · 数值</span>
+            <span>Labels</span>
           </button>
         </div>
       </div>
@@ -1133,7 +1153,10 @@
         </div>
       </div>
       <div class="card-body">
-        <div class="chart-wrap"><canvas id="chartSales"></canvas></div>
+        <div class="chart-wrap">
+          <div id="weekendLegend" class="wkl hidden" aria-hidden="true"></div>
+          <canvas id="chartSales"></canvas>
+        </div>
       </div>
     </div>
   </section>
@@ -1187,13 +1210,21 @@
       <div class="card-head">
         <div>
           <div class="card-title">Multi-Store Comparison <span class="zh">· 多门店叠加对比</span></div>
-          <div class="card-meta" style="margin-top:3px;">Click Cards to Toggle, Max 5 Stores · 点击切换，最多 5 家<span class="info-i" style="margin-left:4px;" title="Respects the date filter; ignores store filter so you can compare any combination of stores side-by-side.">i</span></div>
+          <div class="card-meta" style="margin-top:3px;">Up to 5 stores<span class="info-i" style="margin-left:4px;" title="最多对比 5 家门店。响应日期筛选，忽略门店筛选，可任意组合对比。Respects the date filter; ignores the store filter.">i</span></div>
         </div>
         <div class="card-meta" id="compareMeta"></div>
       </div>
       <div class="card-body" style="gap:10px;">
-        <div class="chip-toolbar"><input id="chipSearch" type="text" class="chip-search" placeholder="Filter stores · 筛选门店…" /></div>
-        <div id="compareChips" class="chip-row"></div>
+        <div class="cmp-select">
+          <div id="compareChips" class="cmp-chips"></div>
+          <div class="cmp-add-wrap">
+            <button type="button" id="addStoreBtn" class="cmp-add" title="添加对比门店">+ Add Store</button>
+            <div id="cmpPopover" class="cmp-popover" hidden>
+              <input id="cmpSearch" type="text" class="combo-search" placeholder="Search store…" />
+              <div id="cmpList" class="cmp-list"></div>
+            </div>
+          </div>
+        </div>
         <div class="chart-wrap"><canvas id="chartCompare"></canvas></div>
       </div>
     </div>
@@ -1230,9 +1261,9 @@
       </div>
       <div class="card-body">
         <div class="rank-head" style="flex-shrink:0;">
-          <span class="eyebrow">#</span><span class="eyebrow">Store · 门店</span><span class="eyebrow">Share · 占比</span>
-          <span class="eyebrow" style="text-align:right;" id="rankColValue">Revenue</span>
-          <span class="eyebrow" style="text-align:right;" id="rankColPct">% Share</span>
+          <span class="eyebrow">#</span><span class="eyebrow">Store · 门店</span>
+          <span class="eyebrow" id="rankColShare">Portfolio Share · 全渠道业绩占比</span>
+          <span class="eyebrow" style="text-align:right;" id="rankColValue">Revenue · 业绩</span>
         </div>
         <div class="rank-list-wrap"><div id="rankingList"></div></div>
       </div>
@@ -1292,6 +1323,7 @@ let CURRENT_PRESET = 'all';
 let GRAN = 'day';
 let TREND_METRIC = 'revenue'; // revenue | atv | upt
 let SHOW_DATA_LABELS = false;
+let SHOW_YOY = false;  // 去年同期 overlay — only effective in Month granularity
 let RANK_METRIC = 'revenue';
 let COMPARE_STORES = [];
 let SUPPRESS_URL_WRITE = false;
@@ -1333,7 +1365,7 @@ function animateNumber(el, target, fmt = fmtInt, dur = 800) {
 function readUrlState() {
   if (!location.hash) return null;
   const p = new URLSearchParams(location.hash.slice(1));
-  return { store: p.get('store'), type: p.get('type'), preset: p.get('preset'), from: p.get('from'), to: p.get('to'), gran: p.get('gran'), sort: p.get('sort'), trend: p.get('trend'), labels: p.get('labels'), cmp: p.get('cmp')?.split(',').filter(Boolean) || null };
+  return { store: p.get('store'), type: p.get('type'), preset: p.get('preset'), from: p.get('from'), to: p.get('to'), gran: p.get('gran'), sort: p.get('sort'), trend: p.get('trend'), labels: p.get('labels'), yoy: p.get('yoy'), cmp: p.get('cmp')?.split(',').filter(Boolean) || null };
 }
 function writeUrlState() {
   if (SUPPRESS_URL_WRITE || !RAW.length) return;
@@ -1345,6 +1377,7 @@ function writeUrlState() {
   if (GRAN !== 'day') p.set('gran', GRAN); if (RANK_METRIC !== 'revenue') p.set('sort', RANK_METRIC);
   if (TREND_METRIC !== 'revenue') p.set('trend', TREND_METRIC);
   if (SHOW_DATA_LABELS) p.set('labels', '1');
+  if (SHOW_YOY) p.set('yoy', '1');
   if (COMPARE_STORES.length) p.set('cmp', COMPARE_STORES.join(','));
   const s = p.toString(); history.replaceState(null, '', s ? '#' + s : location.pathname);
 }
@@ -1387,18 +1420,38 @@ function readFileWithProgress(file, onPct) {
   });
 }
 
+/* Minimum perceived processing time — the bar always takes at least this long,
+   so parsing reads as deliberate. Large files that genuinely take longer pace
+   themselves by real elapsed time and are never slowed beyond their own speed. */
+const MIN_PARSE_MS = 3000;
+function stageForPct(p) {
+  if (p < 30) return 'Reading File · 读取文件…';
+  if (p < 60) return 'Parsing Workbook · 解析表格…';
+  if (p < 90) return 'Reading Rows · 读取数据行…';
+  return 'Processing · 处理数据…';
+}
+
 async function handleFile(file) {
+  const t0 = performance.now();
   showParseProgress(file.name);
-  await paintFrame();
+  let rowsTotal = 0;
+  // time-driven ticker: eases toward 92% over MIN_PARSE_MS, self-correcting after any blocking step
+  let ticker = setInterval(() => {
+    const frac = Math.min(1, (performance.now() - t0) / MIN_PARSE_MS);
+    const pct = (1 - Math.pow(1 - frac, 2)) * 92;
+    setParseProgress(stageForPct(pct), pct, rowsTotal ? `${rowsTotal.toLocaleString()} rows · 行` : '');
+  }, 50);
+  const stopTicker = () => { if (ticker) { clearInterval(ticker); ticker = null; } };
   try {
-    const buf = await readFileWithProgress(file, p => setParseProgress('Reading File · 读取文件…', p * 25));
-    setParseProgress('Reading File · 读取文件…', 25); await paintFrame();
-    setParseProgress('Parsing Workbook · 解析表格…', 40); await paintFrame();
+    const buf = await readFileWithProgress(file, () => {});
     const wb = XLSX.read(new Uint8Array(buf), { type: 'array', cellDates: false });
     const sheet = wb.Sheets[wb.SheetNames[0]];
-    setParseProgress('Reading Rows · 读取数据行…', 65); await paintFrame();
     const rows = XLSX.utils.sheet_to_json(sheet, { defval: null });
-    setParseProgress('Processing · 处理数据…', 85, `${rows.length.toLocaleString()} rows · 行`); await paintFrame();
+    rowsTotal = rows.length;
+    // hold for the remainder of the minimum duration before revealing
+    const remain = MIN_PARSE_MS - (performance.now() - t0);
+    if (remain > 0) await new Promise(r => setTimeout(r, remain));
+    stopTicker();
     const ok = ingestRows(rows, file.name);
     if (ok) {
       setParseProgress('Done · 完成', 100, `${RAW.length.toLocaleString()} rows · 行`); await paintFrame();
@@ -1407,6 +1460,7 @@ async function handleFile(file) {
       hideParseProgress();   // ingestRows rejected the file (e.g. missing fields) and alerted
     }
   } catch (err) {
+    stopTicker();
     hideParseProgress();
     alert(`Parse error · 解析失败: ${err.message}`);
   }
@@ -1452,6 +1506,7 @@ function initialiseFilters() {
     if (url.gran && ['day','week','month'].includes(url.gran)) GRAN = url.gran;
     if (url.trend && ['revenue','atv','upt'].includes(url.trend)) TREND_METRIC = url.trend;
     if (url.labels === '1') SHOW_DATA_LABELS = true;
+    if (url.yoy === '1') SHOW_YOY = true;
     if (url.sort) RANK_METRIC = url.sort;
     const allStores = new Set(RAW.map(r => r.Store));
     if (url.cmp) { const wantC = url.cmp.filter(s => allStores.has(s)); if (wantC.length) COMPARE_STORES = wantC; }
@@ -1491,27 +1546,27 @@ function syncFilterUI() {
   const stores = uniqueStores();
   // 1. Store trigger label: 0=all / 1=name / N=count
   const triggerLabel = document.getElementById('storeTriggerLabel');
-  if (!SELECTED_STORES.length) { triggerLabel.textContent = `All Stores · 全部 (${stores.length})`; }
+  if (!SELECTED_STORES.length) { triggerLabel.textContent = `All stores (${stores.length})`; }
   else if (SELECTED_STORES.length === 1) { const s = SELECTED_STORES[0]; const code = RAW.find(r => r.Store === s)?.StoreCode || ''; triggerLabel.textContent = code ? `${s} · ${code}` : s; }
-  else { triggerLabel.textContent = `${SELECTED_STORES.length} Stores · 已选 ${SELECTED_STORES.length} 家`; }
+  else { triggerLabel.textContent = `${SELECTED_STORES.length} stores`; }
 
   // 2. Summary strip - Store
-  document.getElementById('sumStore').textContent = !SELECTED_STORES.length ? 'All Stores 全部'
+  document.getElementById('sumStore').textContent = !SELECTED_STORES.length ? 'All stores'
     : SELECTED_STORES.length === 1 ? SELECTED_STORES[0]
-    : `${SELECTED_STORES.length} Stores · ${SELECTED_STORES.length} 家`;
+    : `${SELECTED_STORES.length} stores`;
 
   // 2b. Same-store type — trigger label + summary
   const typeLbl = document.getElementById('typeTriggerLabel');
   if (typeLbl) {
-    typeLbl.textContent = !SELECTED_TYPES.length ? `All Types · 全部 (${uniqueTypes().length})`
+    typeLbl.textContent = !SELECTED_TYPES.length ? `All types (${uniqueTypes().length})`
       : SELECTED_TYPES.length === 1 ? SELECTED_TYPES[0]
-      : `${SELECTED_TYPES.length} Types · 已选 ${SELECTED_TYPES.length} 类`;
+      : `${SELECTED_TYPES.length} types`;
   }
   const sumType = document.getElementById('sumType');
   if (sumType) {
-    sumType.textContent = !SELECTED_TYPES.length ? 'All · 全部'
+    sumType.textContent = !SELECTED_TYPES.length ? 'All types'
       : SELECTED_TYPES.length === 1 ? SELECTED_TYPES[0]
-      : `${SELECTED_TYPES.length} Types · ${SELECTED_TYPES.length} 类`;
+      : `${SELECTED_TYPES.length} types`;
   }
 
   // 3. Update summary strip - Period
@@ -1569,7 +1624,7 @@ function toggleCombo() { combo.el().classList.contains('open') ? closeCombo() : 
 
 function buildComboList() {
   const q = combo.search().value.trim().toLowerCase(); const stores = uniqueStores(); const byStore = new Map(); RAW.forEach(r => { if (!byStore.has(r.Store)) byStore.set(r.Store, r); });
-  const items = []; if (stores.length > 1) items.push({ value:'ALL', label:`All Stores · 全部 (${stores.length})`, meta:'' });
+  const items = []; if (stores.length > 1) items.push({ value:'ALL', label:`All stores (${stores.length})`, meta:'' });
   stores.forEach(s => { const ref = byStore.get(s); const metaBits = [ref?.StoreCode, ref?.City].filter(Boolean); items.push({ value:s, label:s, meta: metaBits.join(' · ') }); });
   const filtered = items.filter(it => !q || it.label.toLowerCase().includes(q) || (it.meta && it.meta.toLowerCase().includes(q)));
   const ul = combo.list(); ul.innerHTML = '';
@@ -1600,8 +1655,8 @@ function buildTypeList() {
   // Count stores per type for the meta column
   const storesByType = new Map();
   RAW.forEach(r => { if (!r.SameStoreType) return; if (!storesByType.has(r.SameStoreType)) storesByType.set(r.SameStoreType, new Set()); storesByType.get(r.SameStoreType).add(r.Store); });
-  const items = [{ value: 'ALL', label: `All Types · 全部 (${types.length})`, meta: '' }];
-  types.forEach(t => items.push({ value: t, label: t, meta: `${storesByType.get(t)?.size || 0} stores · 家` }));
+  const items = [{ value: 'ALL', label: `All types (${types.length})`, meta: '' }];
+  types.forEach(t => items.push({ value: t, label: t, meta: `${storesByType.get(t)?.size || 0} stores` }));
   const ul = typeCombo.list(); ul.innerHTML = '';
   items.forEach(it => {
     const isSel = it.value === 'ALL' ? !SELECTED_TYPES.length : SELECTED_TYPES.includes(it.value);
@@ -1617,20 +1672,66 @@ function buildTypeList() {
   });
 }
 
+/* Selected-store chips (removable). Full picker lives in the Add Store popover. */
 function buildCompareChips() {
-  const stores = Array.from(new Set(typeFilter(RAW).map(r => r.Store))).sort(); const row = document.getElementById('compareChips'); row.innerHTML = '';
-  const sorted = stores.slice().sort((a, b) => { const ai = COMPARE_STORES.indexOf(a); const bi = COMPARE_STORES.indexOf(b); if (ai >= 0 && bi >= 0) return ai - bi; if (ai >= 0) return -1; if (bi >= 0) return 1; return a.localeCompare(b); });
-  const q = (document.getElementById('chipSearch')?.value || '').trim().toLowerCase(); const filtered = q ? sorted.filter(s => s.toLowerCase().includes(q) || COMPARE_STORES.includes(s)) : sorted;
-  const limitReached = COMPARE_STORES.length >= 5;
-  filtered.forEach(s => {
-    const idx = COMPARE_STORES.indexOf(s); const active = idx >= 0; const color = active ? COMPARE_PALETTE[idx % COMPARE_PALETTE.length] : null;
-    const chip = document.createElement('button'); chip.type = 'button'; chip.className = 'chip' + (active ? ' active' : '');
-    if (color) chip.style.setProperty('--chip-color', color); if (!active && limitReached) chip.style.opacity = '0.4';
-    chip.innerHTML = `<span class="chip-dot"></span>${escapeHtml(s)}`; chip.title = active ? 'Click to remove' : (limitReached ? 'Limit 5' : 'Click to add');
-    chip.addEventListener('click', () => { const i = COMPARE_STORES.indexOf(s); if (i >= 0) { if (COMPARE_STORES.length > 1) COMPARE_STORES.splice(i, 1); } else if (COMPARE_STORES.length < 5) COMPARE_STORES.push(s); buildCompareChips(); renderCompareChart(); writeUrlState(); });
-    row.appendChild(chip);
+  const wrap = document.getElementById('compareChips'); if (!wrap) return;
+  wrap.innerHTML = '';
+  COMPARE_STORES.forEach((s, idx) => {
+    const color = COMPARE_PALETTE[idx % COMPARE_PALETTE.length];
+    const chip = document.createElement('span'); chip.className = 'cmp-chip'; chip.style.setProperty('--chip-color', color);
+    chip.innerHTML = `<span class="chip-dot"></span><span class="cmp-chip-name">${escapeHtml(s)}</span>`;
+    const x = document.createElement('button'); x.type = 'button'; x.className = 'cmp-chip-x'; x.setAttribute('aria-label', 'Remove ' + s); x.textContent = '×';
+    x.title = COMPARE_STORES.length > 1 ? '移除' : '至少保留一家';
+    x.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (COMPARE_STORES.length <= 1) return;
+      COMPARE_STORES.splice(COMPARE_STORES.indexOf(s), 1);
+      buildCompareChips(); buildCmpList(); renderCompareChart(); writeUrlState();
+    });
+    chip.appendChild(x); wrap.appendChild(chip);
   });
-  document.getElementById('compareMeta').textContent = `${COMPARE_STORES.length}/5 selected · 已选 ${COMPARE_STORES.length} 家 / 共 ${stores.length} 家`;
+  const addBtn = document.getElementById('addStoreBtn');
+  if (addBtn) { const full = COMPARE_STORES.length >= 5; addBtn.disabled = full; addBtn.title = full ? 'Max 5 stores · 最多 5 家' : '添加对比门店'; }
+  const meta = document.getElementById('compareMeta'); if (meta) meta.textContent = `${COMPARE_STORES.length}/5 selected`;
+  if (!document.getElementById('cmpPopover')?.hidden) buildCmpList();
+}
+
+/* Searchable picker: all stores, add/remove, max 5 */
+function buildCmpList() {
+  const list = document.getElementById('cmpList'); if (!list) return;
+  const all = Array.from(new Set(typeFilter(RAW).map(r => r.Store))).sort();
+  const byStore = new Map(); RAW.forEach(r => { if (!byStore.has(r.Store)) byStore.set(r.Store, r); });
+  const q = (document.getElementById('cmpSearch')?.value || '').trim().toLowerCase();
+  const filtered = all.filter(s => !q || s.toLowerCase().includes(q) || (byStore.get(s)?.City || '').toLowerCase().includes(q) || (byStore.get(s)?.StoreCode || '').toLowerCase().includes(q));
+  const limit = COMPARE_STORES.length >= 5;
+  list.innerHTML = '';
+  if (!filtered.length) { list.innerHTML = '<div class="cmp-empty">No match · 无结果</div>'; return; }
+  filtered.forEach(s => {
+    const sel = COMPARE_STORES.includes(s); const disabled = !sel && limit;
+    const ref = byStore.get(s); const metaBits = [ref?.StoreCode, ref?.City].filter(Boolean).join(' · ');
+    const el = document.createElement('div'); el.className = 'cmp-opt' + (sel ? ' selected' : '') + (disabled ? ' disabled' : '');
+    el.innerHTML = `<span class="cmp-opt-check">${sel ? '✓' : ''}</span><span class="cmp-opt-name">${escapeHtml(s)}</span>${metaBits ? `<span class="cmp-opt-meta">${escapeHtml(metaBits)}</span>` : ''}`;
+    if (disabled) el.title = 'Max 5 stores · 最多 5 家';
+    el.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const i = COMPARE_STORES.indexOf(s);
+      if (i >= 0) { if (COMPARE_STORES.length > 1) COMPARE_STORES.splice(i, 1); }
+      else { if (COMPARE_STORES.length >= 5) return; COMPARE_STORES.push(s); }
+      buildCompareChips(); buildCmpList(); renderCompareChart(); writeUrlState();
+    });
+    list.appendChild(el);
+  });
+}
+
+function openCmpPopover() {
+  const p = document.getElementById('cmpPopover'); if (!p) return;
+  p.hidden = false; document.getElementById('addStoreBtn').classList.add('open');
+  const s = document.getElementById('cmpSearch'); if (s) s.value = '';
+  buildCmpList(); setTimeout(() => s && s.focus(), 30);
+}
+function closeCmpPopover() {
+  const p = document.getElementById('cmpPopover'); if (!p) return;
+  p.hidden = true; document.getElementById('addStoreBtn').classList.remove('open');
 }
 
 function typeFilter(rows) { if (!SELECTED_TYPES.length) return rows; const s = new Set(SELECTED_TYPES); return rows.filter(r => s.has(r.SameStoreType)); }
@@ -1641,9 +1742,10 @@ function aggregateBy(rows, gran) {
   const keyFn = gran === 'week' ? weekKey : gran === 'month' ? monthKey : isoDay; const map = new Map();
   rows.forEach(r => {
     const k = keyFn(r.Date);
-    if (!map.has(k)) map.set(k, { key:k, date:r.Date, Revenue:0, Transactions:0, Items:0, RevenuePrior:0, TransPrior:0, ItemsPrior:0, Area:0, AreaPrior:0, days:new Set(), tradingDays:new Set(), storesArea: new Map() });
+    if (!map.has(k)) map.set(k, { key:k, date:r.Date, Revenue:0, Transactions:0, Items:0, RevenuePrior:0, TransPrior:0, ItemsPrior:0, Area:0, AreaPrior:0, days:new Set(), tradingDays:new Set(), priorDays:new Set(), storesArea: new Map() });
     const o = map.get(k); o.Revenue += r.Revenue; o.Transactions += r.Transactions; o.Items += r.Items; o.RevenuePrior += r.RevenuePrior; o.TransPrior += r.TransPrior; o.ItemsPrior += r.ItemsPrior; o.days.add(isoDay(r.Date));
     if ((r.TradingFlag != null && r.TradingFlag > 0) || (r.TradingFlag == null && r.Revenue > 0)) o.tradingDays.add(isoDay(r.Date));
+    if (r.RevenuePrior > 0) o.priorDays.add(isoDay(r.Date));
     if (!o.storesArea.has(r.Store) || o.storesArea.get(r.Store) < r.Area) o.storesArea.set(r.Store, r.Area); if (r.Date < o.date) o.date = r.Date;
   });
   map.forEach(o => { o.Area = Array.from(o.storesArea.values()).reduce((s,v)=>s+v, 0); }); return Array.from(map.values()).sort((a,b) => a.date - b.date);
@@ -1717,33 +1819,62 @@ function render() {
     trans:   agg.map(o => o.tradingDays.size ? o.Transactions / o.tradingDays.size : 0),
     atv:     agg.map(o => o.Transactions ? o.Revenue / o.Transactions : 0),
     upt:     agg.map(o => o.Transactions ? o.Items / o.Transactions : 0),
+    // prior-year (去年同期) counterparts, aligned per bucket
+    revPrior: agg.map(o => o.RevenuePrior),
+    atvPrior: agg.map(o => o.TransPrior ? o.RevenuePrior / o.TransPrior : 0),
+    uptPrior: agg.map(o => o.TransPrior ? o.ItemsPrior / o.TransPrior : 0),
   };
+  const curDays   = agg.map(o => o.tradingDays.size);
+  const priorDays = agg.map(o => o.priorDays.size);
 
   // Trend chart: pick series by selected metric
   const trendMap = {
-    revenue: { data: series.rev, sym: '$', type: 'bar', titleEn: 'Revenue', titleZh: '销售金额', meta: 'Revenue with moving average · 销售与均线' },
-    atv:     { data: series.atv, sym: '$', type: 'line', titleEn: 'ATV', titleZh: '客单价', meta: 'Average transaction value with moving average · 客单价与均线' },
-    upt:     { data: series.upt, sym: '',  type: 'line', titleEn: 'UPT', titleZh: '连带率', meta: 'Units per transaction with moving average · 连带率与均线' },
+    revenue: { data: series.rev, prior: series.revPrior, sym: '$', type: 'bar',  titleEn: 'Revenue', titleZh: '销售金额', metaSolo: 'Daily revenue · 日销售额', meta: 'Revenue vs last year · 销售与去年同期' },
+    atv:     { data: series.atv, prior: series.atvPrior, sym: '$', type: 'line', titleEn: 'ATV', titleZh: '客单价', metaSolo: 'Average transaction value · 客单价', meta: 'Average transaction value vs last year · 客单价与去年同期' },
+    upt:     { data: series.upt, prior: series.uptPrior, sym: '',  type: 'line', titleEn: 'UPT', titleZh: '连带率', metaSolo: 'Units per transaction · 连带率', meta: 'Units per transaction vs last year · 连带率与去年同期' },
   };
   const tm = trendMap[TREND_METRIC];
-  const win = GRAN === 'day' ? 7 : GRAN === 'week' ? 4 : 3;
-  // Update card meta line to reflect selected metric
-  const metaEl = document.getElementById('trendMeta');
-  if (metaEl) metaEl.textContent = tm.meta;
 
-  // Data label toggle: only enabled when bar chart (Revenue) with <=30 bars
+  // YoY (去年同期) toggle — only available in Month granularity
+  const canYoY = GRAN === 'month';
+  const showYoY = SHOW_YOY && canYoY;
+  const yoyBtn = document.getElementById('yoyToggle');
+  if (yoyBtn) {
+    yoyBtn.disabled = !canYoY;
+    yoyBtn.classList.toggle('active', showYoY);
+    yoyBtn.title = canYoY
+      ? 'Compare with last year · 去年同期对比'
+      : 'YoY available in Month view only · 仅月粒度可用';
+  }
+
+  // Update card meta line to reflect selected metric / mode
+  const metaEl = document.getElementById('trendMeta');
+  if (metaEl) metaEl.textContent = showYoY ? tm.meta : tm.metaSolo;
+
+  // Data label toggle: Revenue bars, ≤30 bars, and not in YoY (grouped) mode
   const labelBtn = document.getElementById('dataLabelToggle');
-  const canLabel = tm.type === 'bar' && agg.length <= 30;
+  const canLabel = tm.type === 'bar' && !showYoY && agg.length <= 30;
   if (labelBtn) {
     labelBtn.disabled = !canLabel;
     labelBtn.classList.toggle('active', SHOW_DATA_LABELS && canLabel);
     labelBtn.title = tm.type !== 'bar'
       ? 'Labels available for Revenue bars only · 仅销售柱状图可用'
-      : (agg.length > 30 ? `Too many bars (${agg.length}) · 柱子过多，需 ≤30 根` : 'Show value labels on bars · 显示柱子数值');
+      : (showYoY ? 'Not available in YoY mode · 同比模式下不可用'
+      : (agg.length > 30 ? `Too many bars (${agg.length}) · 柱子过多，需 ≤30 根` : 'Show value labels on bars · 显示柱子数值'));
+  }
+
+  // Chart legend — single top-right container, content depends on mode (YoY vs weekday coloring)
+  const wkl = document.getElementById('weekendLegend');
+  if (wkl) {
+    let items = null;
+    if (showYoY) items = [{ label: '今年 This year', color: COLORS.primary }, { label: '去年 Last year', color: '#8e8e93' }];
+    else if (GRAN === 'day' && TREND_METRIC === 'revenue') items = [{ label: 'Weekday', color: 'rgba(0,102,204,0.85)' }, { label: 'Weekend', color: '#004a99' }];
+    if (items) { wkl.innerHTML = items.map(it => `<span><i class="wkl-dot" style="background:${it.color}"></i>${it.label}</span>`).join(''); wkl.classList.remove('hidden'); }
+    else wkl.classList.add('hidden');
   }
 
   renderStoreProfile();
-  renderSalesChart(labels, tm.data, movingAvg(tm.data, win), tm, agg, SHOW_DATA_LABELS && canLabel); renderWeekday(); renderCompareChart(); renderRanking();
+  renderSalesChart(labels, tm.data, tm.prior, tm, agg, SHOW_DATA_LABELS && canLabel, curDays, priorDays, showYoY); renderWeekday(); renderCompareChart(); renderRanking();
 }
 
 function setPill(id, cur, prior) { const el = document.getElementById(id); if (!prior || prior === 0) { el.className = 'pill neut'; el.textContent = 'No Prior · 无对比'; return; } const pct = (cur - prior) / prior * 100; const sign = pct >= 0 ? '+' : ''; el.className = 'pill ' + (pct >= 0 ? 'pos' : 'neg'); el.textContent = `${sign}${pct.toFixed(1)}% YoY`; }
@@ -1878,31 +2009,47 @@ function renderStoreProfile() {
   }
 }
 
-function movingAvg(arr, win = 7) { return arr.map((_, i, a) => { const sl = a.slice(Math.max(0, i - win + 1), i + 1); return sl.reduce((s,v)=>s+v,0) / sl.length; }); }
 function destroy(id) { if (charts[id]) { charts[id].destroy(); delete charts[id]; } }
 
-function renderSalesChart(labels, data, movAvg, tm, agg, showLabels) {
+function renderSalesChart(labels, data, prior, tm, agg, showLabels, curDays, priorDays, showYoY) {
   tm = tm || { sym: '$', type: 'bar', titleEn: 'Revenue' };
+  prior = prior || []; curDays = curDays || []; priorDays = priorDays || [];
   destroy('sales');
   const ctx = document.getElementById('chartSales').getContext('2d');
   const isBar = tm.type === 'bar';
   const decimals = tm.sym === '$' && !isBar ? 2 : (tm.sym === '' ? 2 : 0); // ATV $ 2dp, UPT 2dp, Revenue 0dp
+  const lastIdx = data.length - 1;
 
-  // Weekend coloring — only in Day granularity bar mode (weekend has no meaning for week/month buckets)
-  const isDayBar = isBar && GRAN === 'day' && agg && agg.length;
-  const weekendFlags = isDayBar ? agg.map(o => { const d = o.date.getUTCDay(); return d === 0 || d === 6; }) : null;
-  const barColor = weekendFlags
-    ? weekendFlags.map(w => w ? 'rgba(0,74,153,0.92)' : 'rgba(0,102,204,0.85)')  // weekend deep blue vs weekday blue
-    : 'rgba(0,102,204,0.85)';
-  const barHover = weekendFlags
-    ? weekendFlags.map(w => w ? COLORS.primaryDeep : COLORS.primaryFocus)
-    : COLORS.primaryFocus;
+  // Area gradient under the this-year line (ATV/UPT, and the YoY-off line view)
+  const fillBlue  = (c) => { const ch = c.chart; if (!ch.chartArea) return 'rgba(0,102,204,0.12)'; const g = ch.ctx.createLinearGradient(0, ch.chartArea.top, 0, ch.chartArea.bottom); g.addColorStop(0, 'rgba(0,102,204,0.20)'); g.addColorStop(1, 'rgba(0,102,204,0)'); return g; };
 
-  const primarySet = isBar
-    ? { type: 'bar', label: tm.titleEn, data, backgroundColor: barColor, hoverBackgroundColor: barHover, borderRadius: 4, borderSkipped: false, maxBarThickness: 22, order: 2 }
-    : { type: 'line', label: tm.titleEn, data, borderColor: COLORS.primary, backgroundColor: 'rgba(0,102,204,0.06)', borderWidth: 2, tension: 0.35, pointRadius: 0, pointHoverRadius: 4, pointHoverBackgroundColor: COLORS.primary, pointHoverBorderColor: '#fff', pointHoverBorderWidth: 2, fill: true, order: 2 };
+  // This-year area line (used for ATV/UPT, and the YoY-off line view)
+  const curAreaLine = { type: 'line', label: tm.titleEn, data, borderColor: COLORS.primary, backgroundColor: fillBlue, borderWidth: 2.6, tension: 0.4, fill: true,
+    pointRadius: data.map((_, i) => i === lastIdx ? 4 : 0), pointBackgroundColor: '#fff', pointBorderColor: COLORS.primary, pointBorderWidth: 2.5,
+    pointHoverRadius: 4, pointHoverBackgroundColor: COLORS.primary, pointHoverBorderColor: '#fff', pointHoverBorderWidth: 2, order: 1, _role: 'current' };
 
-  // Inline data-label plugin (no external dependency)
+  // Current-year series (shared): Revenue = bars (weekend-colored in Day view), ATV/UPT = area line
+  let currentSet;
+  if (isBar) {
+    const isDayBar = GRAN === 'day' && agg && agg.length;
+    const weekendFlags = isDayBar ? agg.map(o => { const d = o.date.getUTCDay(); return d === 0 || d === 6; }) : null;
+    const barColor = weekendFlags ? weekendFlags.map(w => w ? 'rgba(0,74,153,0.92)' : 'rgba(0,102,204,0.85)') : 'rgba(0,102,204,0.85)';
+    const barHover = weekendFlags ? weekendFlags.map(w => w ? COLORS.primaryDeep : COLORS.primaryFocus) : COLORS.primaryFocus;
+    currentSet = { type: 'bar', label: showYoY ? '今年 This year' : tm.titleEn, data, backgroundColor: barColor, hoverBackgroundColor: barHover, borderRadius: 4, borderSkipped: false, maxBarThickness: 24, order: 2, _role: 'current' };
+  } else {
+    currentSet = curAreaLine;
+    currentSet.label = showYoY ? '今年 This year' : tm.titleEn;
+  }
+
+  const datasets = [currentSet];
+  if (showYoY) {
+    // 去年同期 — distinct grey line with hollow point markers so each month's prior value is legible
+    datasets.push({ type: 'line', label: '去年 Last year', data: prior, borderColor: '#8e8e93', borderWidth: 2, borderDash: [6, 4], tension: 0.4, fill: false,
+      pointRadius: prior.map(v => v > 0 ? 3 : 0), pointBackgroundColor: '#fff', pointBorderColor: '#8e8e93', pointBorderWidth: 1.8,
+      pointHoverRadius: 4, pointHoverBackgroundColor: '#8e8e93', pointHoverBorderColor: '#fff', pointHoverBorderWidth: 2, spanGaps: true, order: isBar ? 1 : 2, _role: 'prior' });
+  }
+
+  // Inline data-label plugin (current series, dataset 0, bars only)
   const labelFmt = (v) => tm.sym === '$' ? '$' + abbr(v) : (decimals > 0 ? v.toFixed(decimals) : fmtInt(v));
   const dataLabelPlugin = {
     id: 'barDataLabels',
@@ -1925,14 +2072,33 @@ function renderSalesChart(labels, data, movAvg, tm, agg, showLabels) {
     }
   };
 
-  charts.sales = new Chart(ctx, {
-    data: { labels, datasets: [
-      primarySet,
-      { type: 'line', label: 'Moving avg · 均线', data: movAvg, borderColor: COLORS.ink, borderWidth: 1.5, tension: 0.35, pointRadius: 0, pointHoverRadius: 4, pointHoverBackgroundColor: COLORS.ink, pointHoverBorderColor: '#fff', pointHoverBorderWidth: 2, fill: false, borderDash: isBar ? [] : [2, 3], order: 1 }
-    ] },
-    options: (() => { const o = chartCommonOpts({ ySymbol: tm.sym, decimals }); if (showLabels) { o.layout = { padding: { top: 22 } }; } return o; })(),
-    plugins: [dataLabelPlugin]
+  // Tooltip: in YoY mode show this-year vs last-year (value · days); otherwise the single value · days
+  const fmtV = (v) => tm.sym === '$'
+    ? (decimals > 0 ? '$' + v.toLocaleString('en-US', { minimumFractionDigits: decimals, maximumFractionDigits: decimals }) : '$' + fmtMoney(v))
+    : (decimals > 0 ? v.toFixed(decimals) : fmtInt(v));
+  const opts = chartCommonOpts({ ySymbol: tm.sym, decimals });
+  // Begin Y axis at 0 so the area fill under the line is actually visible
+  // (ratio metrics like ATV/UPT have a high baseline; auto-scaling would flatten the fill to a sliver)
+  opts.scales.y.beginAtZero = true;
+  // Legend handled by the unified top-right HTML legend (#weekendLegend) in render()
+  opts.plugins.legend = { display: false };
+  opts.plugins.tooltip = tooltipStyle({
+    filter: (item) => !(item.dataset._role === 'prior' && !(priorDays[item.dataIndex] > 0)),
+    callbacks: {
+      title: (items) => items.length ? items[0].label : '',
+      label: (c) => {
+        const i = c.dataIndex;
+        if (c.dataset._role === 'prior') return `去年 Last year: ${fmtV(prior[i])} · ${priorDays[i] || 0} 天`;
+        // In Day view each bar is one day — tag it Weekday/Weekend instead of "· 1 天"
+        let suffix = ` · ${curDays[i] || 0} 天`;
+        if (GRAN === 'day' && agg && agg[i]) { const d = agg[i].date.getUTCDay(); suffix = (d === 0 || d === 6) ? ' · Weekend' : ' · Weekday'; }
+        return showYoY ? `今年 This year: ${fmtV(data[i])}${suffix}` : `${fmtV(data[i])}${suffix}`;
+      }
+    }
   });
+  if (showLabels) opts.layout = { padding: { top: 22 } };
+
+  charts.sales = new Chart(ctx, { data: { labels, datasets }, options: opts, plugins: [dataLabelPlugin] });
 }
 
 function renderCompareChart() {
@@ -2093,19 +2259,40 @@ function renderRanking() {
     medianUnitEl.textContent = unit || '';
   }
 
-  const colMap = { revenue: ['Revenue · 销售', '% Share · 占比'], density: ['Sales/m² · 坪效', 'vs Avg · 较均'], atv: ['ATV · 客单价', 'vs Avg · 较均'], ipt: ['UPT · 连带率', 'vs Avg · 较均'], }; document.getElementById('rankColValue').textContent = colMap[RANK_METRIC][0]; document.getElementById('rankColPct').textContent = colMap[RANK_METRIC][1]; document.getElementById('rankingMeta').textContent = `${list.length} stores · Total $${fmtMoney(list.reduce((s,o)=>s+o.Revenue, 0))}`;
+  // Column headers — comparison + per-metric absolute value (each metric gets its own value label)
+  document.getElementById('rankColShare').textContent = isShare ? 'Portfolio Share · 全渠道业绩占比' : 'VS AVG · 较均';
+  document.getElementById('rankColValue').textContent =
+    { revenue: 'Revenue · 业绩', density: 'Sales/m² · 坪效', atv: 'ATV · 客单价', ipt: 'UPT · 连带率' }[RANK_METRIC] || 'Value';
+  document.getElementById('rankingMeta').textContent = `${list.length} stores · Total $${fmtMoney(list.reduce((s,o)=>s+o.Revenue, 0))}`;
+
   const ul = document.getElementById('rankingList'); ul.innerHTML = '';
   top.forEach((o, i) => {
-    const widthPct = (o[metricKey] / maxVal) * 100; const valDisplay = formatMetricValue(o[metricKey], RANK_METRIC); let pctDisplay, pctClass = '';
-    if (isShare) { pctDisplay = portfolioTotal ? `${((o[metricKey]/portfolioTotal)*100).toFixed(1)}%` : '—'; } else { const delta = portfolioAvg ? (o[metricKey]/portfolioAvg - 1) * 100 : 0; pctDisplay = portfolioAvg ? `${delta >= 0 ? '+' : ''}${delta.toFixed(0)}%` : '—'; pctClass = delta >= 0 ? 'pos' : 'neg'; }
+    const valDisplay = rankValueDisplay(o[metricKey], RANK_METRIC);
+    // Comparison cell (number-forward): % leads, thin magnitude bar below
+    const widthPct = (o[metricKey] / maxVal) * 100;
+    let pctTxt, pctCls = '', cap;
+    if (isShare) {
+      pctTxt = portfolioTotal ? `${((o[metricKey] / portfolioTotal) * 100).toFixed(1)}%` : '—'; cap = 'of total';
+    } else {
+      const delta = portfolioAvg ? (o[metricKey] / portfolioAvg - 1) : 0;
+      pctTxt = portfolioAvg ? `${delta >= 0 ? '+' : '−'}${Math.abs(delta * 100).toFixed(0)}%` : '—';
+      pctCls = delta >= 0 ? 'pos' : 'neg'; cap = 'vs avg';
+    }
+    const cmpCell = `<div class="rank-cmp"><div class="rank-cmp-top"><span class="rank-cmp-pct ${pctCls}">${pctTxt}</span><span class="rank-cmp-cap">${cap}</span></div><div class="rank-cmp-track"><div class="rank-cmp-fill" data-w="${widthPct.toFixed(2)}"></div></div></div>`;
     const rank = i + 1; const isCurrent = (SELECTED_STORES.length === 1 && SELECTED_STORES[0] === o.Store); const isTop3 = rank <= 3; const row = document.createElement('div'); row.className = 'rank-row' + (isCurrent ? ' current' : '') + (isTop3 ? ' top3' : '');
-    row.innerHTML = `<span class="rank-num">${String(rank).padStart(2,'0')}</span><div class="rank-name-cell"><div class="rank-name">${escapeHtml(o.Store)}</div><span class="rank-city">${escapeHtml([o.StoreCode, o.City].filter(Boolean).join(' · '))}</span></div><div class="rank-bar-wrap"><div class="rank-bar-fill" data-w="${widthPct.toFixed(2)}"></div></div><span class="rank-val">${valDisplay}</span><span class="rank-pct ${pctClass}">${pctDisplay}</span>`;
+    row.innerHTML = `<span class="rank-num">${String(rank).padStart(2,'0')}</span><div class="rank-name-cell"><div class="rank-name">${escapeHtml(o.Store)}</div><span class="rank-city">${escapeHtml([o.StoreCode, o.City].filter(Boolean).join(' · '))}</span></div>${cmpCell}<span class="rank-val">${valDisplay}</span>`;
     row.addEventListener('click', () => { SELECTED_STORES = [o.Store]; syncFilterUI(); render(); writeUrlState(); }); ul.appendChild(row);
   });
-  requestAnimationFrame(() => { ul.querySelectorAll('.rank-bar-fill').forEach((el, idx) => { setTimeout(() => { el.style.width = el.dataset.w + '%'; }, idx * 40); }); });
+  requestAnimationFrame(() => { ul.querySelectorAll('.rank-cmp-fill').forEach((el, idx) => { setTimeout(() => { el.style.width = el.dataset.w + '%'; }, idx * 40); }); });
+}
+function rankValueDisplay(v, metric) {
+  if (metric === 'revenue') return '$' + fmtMoney(v);
+  if (metric === 'density') return '$' + fmtMoney2(v) + '/m²';
+  if (metric === 'atv') return '$' + fmtMoney2(v);
+  if (metric === 'ipt') return fmtNum2(v) + ' items';
+  return String(v);
 }
 function ordinal(n) { const s = ['th','st','nd','rd']; const v = n % 100; return s[(v-20)%10] || s[v] || s[0]; }
-function formatMetricValue(v, metric) { if (metric === 'revenue') return '$' + fmtMoney(v); if (metric === 'atv') return '$' + fmtMoney2(v); if (metric === 'ipt') return fmtNum2(v); if (metric === 'density') return '$' + fmtMoney2(v); return v; }
 
 function chartCommonOpts({ ySymbol, decimals = 0 } = {}) {
   const fmtVal = (v) => {
@@ -2146,17 +2333,20 @@ document.getElementById('shareBtn').addEventListener('click', async () => { try 
 
 document.getElementById('dateSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (b) applyPreset(b.dataset.preset); });
 ['dateFrom','dateTo'].forEach(id => { document.getElementById(id).addEventListener('change', () => { const f = parseInputDate(document.getElementById('dateFrom').value); const t = parseInputDate(document.getElementById('dateTo').value); if (f) DATE_FROM = f; if (t) DATE_TO = t; if (DATE_FROM && DATE_TO && DATE_FROM > DATE_TO) [DATE_FROM, DATE_TO] = [DATE_TO, DATE_FROM]; CURRENT_PRESET = 'custom'; syncFilterUI(); render(); writeUrlState(); }); });
-document.getElementById('resetFilters').addEventListener('click', () => { SELECTED_STORES = []; SELECTED_TYPES = []; RANK_METRIC = 'revenue'; GRAN = 'day'; TREND_METRIC = 'revenue'; SHOW_DATA_LABELS = false; syncSortUI(); syncGranUI(); syncTrendMetricUI(); buildCompareChips(); applyPreset('all'); });
+document.getElementById('resetFilters').addEventListener('click', () => { SELECTED_STORES = []; SELECTED_TYPES = []; RANK_METRIC = 'revenue'; GRAN = 'day'; TREND_METRIC = 'revenue'; SHOW_DATA_LABELS = false; SHOW_YOY = false; syncSortUI(); syncGranUI(); syncTrendMetricUI(); buildCompareChips(); applyPreset('all'); });
 document.getElementById('granSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { GRAN = b.dataset.gran; syncGranUI(); render(); writeUrlState(); } });
 document.getElementById('trendMetricSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { TREND_METRIC = b.dataset.metric; syncTrendMetricUI(); render(); writeUrlState(); } });
 document.getElementById('dataLabelToggle').addEventListener('click', () => { if (document.getElementById('dataLabelToggle').disabled) return; SHOW_DATA_LABELS = !SHOW_DATA_LABELS; render(); writeUrlState(); });
+document.getElementById('yoyToggle').addEventListener('click', () => { if (document.getElementById('yoyToggle').disabled) return; SHOW_YOY = !SHOW_YOY; render(); writeUrlState(); });
 document.getElementById('rankSortSeg').addEventListener('click', e => { const b = e.target.closest('button'); if (b) { RANK_METRIC = b.dataset.sort; syncSortUI(); renderRanking(); writeUrlState(); } });
 document.getElementById('storeTrigger').addEventListener('click', toggleCombo);
 document.getElementById('typeTrigger').addEventListener('click', toggleTypeCombo);
 document.getElementById('storeSearch').addEventListener('input', buildComboList);
-document.getElementById('chipSearch').addEventListener('input', buildCompareChips);
+document.getElementById('addStoreBtn').addEventListener('click', (e) => { e.stopPropagation(); if (document.getElementById('addStoreBtn').disabled) return; document.getElementById('cmpPopover').hidden ? openCmpPopover() : closeCmpPopover(); });
+document.getElementById('cmpSearch').addEventListener('input', buildCmpList);
+document.getElementById('cmpSearch').addEventListener('keydown', e => { if (e.key === 'Escape') closeCmpPopover(); });
 document.getElementById('storeSearch').addEventListener('keydown', e => { if (e.key === 'Escape') closeCombo(); if (e.key === 'Enter') { const first = document.querySelector('.combo-option'); if (first) first.click(); } });
-document.addEventListener('click', e => { if (!document.getElementById('storeCombo').contains(e.target)) closeCombo(); if (!document.getElementById('typeCombo').contains(e.target)) closeTypeCombo(); });
+document.addEventListener('click', e => { if (!document.getElementById('storeCombo').contains(e.target)) closeCombo(); if (!document.getElementById('typeCombo').contains(e.target)) closeTypeCombo(); if (!document.querySelector('.cmp-add-wrap').contains(e.target)) closeCmpPopover(); });
 
 function generateDemo() {
   const stores = [
